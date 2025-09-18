@@ -15,8 +15,8 @@ class MyApp(QtWidgets.QMainWindow):
 
     def submitText(self):
         # Get the text from the input fields
-        user_input1 = self.lineEdit.text()  # Get text from the first QLineEdit
-        user_input2 = self.lineEdit_2.text()  # Get text from the second QLineEdit
+        user_input1 = self.lineEdit.text()
+        user_input2 = self.lineEdit_2.text()
 
         # Define the directory where the .md file should exist
         worklog_directory = r"d:\WorklogApplication"
@@ -30,27 +30,18 @@ class MyApp(QtWidgets.QMainWindow):
 
         # Check if a valid .md file was found
         if md_file:
-            print("Valid .md file found in WorklogApplication directory.")
-            print("Input 1:", user_input1)
-            print("Input 2:", user_input2)
-            print("MD Attachment:", md_file)
-            
-            # Open the .md file, read its contents, and close it
             try:
                 with open(md_file, 'r', encoding='utf-8') as file:
                     md_content = file.read()
                 print("Contents of the .md file:")
                 print(md_content)
-                
-                # Notify the user that the input is successfully submitted
-                QtWidgets.QMessageBox.information(self, "Submission Successful", "Your input has been successfully submitted. The result will be shared shortly.")
+                QtWidgets.QMessageBox.information(self, "Submission Successful", "Your input has been successfully submitted.")
             except Exception as e:
-                QtWidgets.QMessageBox.critical(self, "Error", f"An error occurred while reading the .md file: {e}")
+                QtWidgets.QMessageBox.critical(self, "Error", f"An error occurred: {e}")
         else:
             QtWidgets.QMessageBox.warning(self, "No .md File Found", "No valid .md file found in the WorklogApplication directory.")
 
     def closeApp(self):
-        # Close the application
         self.close()
 
 
