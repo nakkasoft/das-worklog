@@ -6,8 +6,8 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>800</width>
-    <height>600</height>
+    <width>787</width>
+    <height>642</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -19,8 +19,8 @@
      <rect>
       <x>0</x>
       <y>0</y>
-      <width>800</width>
-      <height>600</height>
+      <width>791</width>
+      <height>641</height>
      </rect>
     </property>
     <property name="styleSheet">
@@ -76,22 +76,22 @@
     <property name="geometry">
      <rect>
       <x>30</x>
-      <y>140</y>
-      <width>101</width>
+      <y>110</y>
+      <width>141</width>
       <height>51</height>
      </rect>
     </property>
     <property name="font">
      <font>
       <family>LG스마트체2.0 Regular</family>
-      <pointsize>18</pointsize>
+      <pointsize>10</pointsize>
      </font>
     </property>
     <property name="styleSheet">
      <string notr="true">color: white;</string>
     </property>
     <property name="text">
-     <string>Key</string>
+     <string>JIRA_TOKEN</string>
     </property>
     <property name="alignment">
      <set>Qt::AlignCenter</set>
@@ -100,14 +100,17 @@
    <widget class="QLineEdit" name="lineEdit">
     <property name="geometry">
      <rect>
-      <x>140</x>
-      <y>140</y>
+      <x>180</x>
+      <y>110</y>
       <width>541</width>
       <height>41</height>
      </rect>
     </property>
     <property name="styleSheet">
      <string notr="true">border: 2px solid black; background-color: rgb(255, 255, 255);</string>
+    </property>
+    <property name="text">
+     <string>JIRA_TOKEN</string>
     </property>
     <property name="placeholderText">
      <string>Jira/Collab</string>
@@ -116,8 +119,8 @@
    <widget class="QPushButton" name="pushButton">
     <property name="geometry">
      <rect>
-      <x>300</x>
-      <y>370</y>
+      <x>180</x>
+      <y>480</y>
       <width>201</width>
       <height>71</height>
      </rect>
@@ -138,10 +141,10 @@
    <widget class="QPushButton" name="closeButton">
     <property name="geometry">
      <rect>
-      <x>300</x>
-      <y>460</y>
+      <x>430</x>
+      <y>480</y>
       <width>201</width>
-      <height>41</height>
+      <height>71</height>
      </rect>
     </property>
     <property name="font">
@@ -160,14 +163,17 @@
    <widget class="QLineEdit" name="lineEdit_2">
     <property name="geometry">
      <rect>
-      <x>140</x>
-      <y>200</y>
+      <x>180</x>
+      <y>160</y>
       <width>541</width>
       <height>41</height>
      </rect>
     </property>
     <property name="styleSheet">
      <string notr="true">border: 2px solid black; background-color: rgb(255, 255, 255);</string>
+    </property>
+    <property name="text">
+     <string>CONFLUENCE_TOKEN</string>
     </property>
     <property name="placeholderText">
      <string>Gerrit</string>
@@ -176,8 +182,8 @@
    <widget class="QLabel" name="instructionLabel">
     <property name="geometry">
      <rect>
-      <x>140</x>
-      <y>290</y>
+      <x>180</x>
+      <y>420</y>
       <width>541</width>
       <height>41</height>
      </rect>
@@ -199,25 +205,201 @@
     <property name="geometry">
      <rect>
       <x>30</x>
-      <y>200</y>
-      <width>101</width>
+      <y>160</y>
+      <width>141</width>
       <height>51</height>
      </rect>
     </property>
     <property name="font">
      <font>
       <family>LG스마트체2.0 Regular</family>
-      <pointsize>18</pointsize>
+      <pointsize>10</pointsize>
      </font>
     </property>
     <property name="styleSheet">
      <string notr="true">color: white;</string>
     </property>
     <property name="text">
-     <string>Gerrit</string>
+     <string>CONFLUENCE_TOKEN</string>
     </property>
     <property name="alignment">
      <set>Qt::AlignCenter</set>
+    </property>
+   </widget>
+   <widget class="QLabel" name="label_4">
+    <property name="geometry">
+     <rect>
+      <x>30</x>
+      <y>260</y>
+      <width>141</width>
+      <height>51</height>
+     </rect>
+    </property>
+    <property name="font">
+     <font>
+      <family>LG스마트체2.0 Regular</family>
+      <pointsize>10</pointsize>
+     </font>
+    </property>
+    <property name="styleSheet">
+     <string notr="true">color: white;</string>
+    </property>
+    <property name="text">
+     <string>GERRIT_TOKENS-EU</string>
+    </property>
+    <property name="alignment">
+     <set>Qt::AlignCenter</set>
+    </property>
+   </widget>
+   <widget class="QLineEdit" name="lineEdit_3">
+    <property name="geometry">
+     <rect>
+      <x>180</x>
+      <y>210</y>
+      <width>541</width>
+      <height>41</height>
+     </rect>
+    </property>
+    <property name="styleSheet">
+     <string notr="true">border: 2px solid black; background-color: rgb(255, 255, 255);</string>
+    </property>
+    <property name="text">
+     <string>GERRIT_TOKENS-NA</string>
+    </property>
+    <property name="placeholderText">
+     <string>Jira/Collab</string>
+    </property>
+   </widget>
+   <widget class="QLineEdit" name="lineEdit_4">
+    <property name="geometry">
+     <rect>
+      <x>180</x>
+      <y>260</y>
+      <width>541</width>
+      <height>41</height>
+     </rect>
+    </property>
+    <property name="styleSheet">
+     <string notr="true">border: 2px solid black; background-color: rgb(255, 255, 255);</string>
+    </property>
+    <property name="text">
+     <string>GERRIT_TOKENS-EU</string>
+    </property>
+    <property name="placeholderText">
+     <string>Gerrit</string>
+    </property>
+   </widget>
+   <widget class="QLabel" name="label_5">
+    <property name="geometry">
+     <rect>
+      <x>30</x>
+      <y>210</y>
+      <width>141</width>
+      <height>51</height>
+     </rect>
+    </property>
+    <property name="font">
+     <font>
+      <family>LG스마트체2.0 Regular</family>
+      <pointsize>10</pointsize>
+     </font>
+    </property>
+    <property name="styleSheet">
+     <string notr="true">color: white;</string>
+    </property>
+    <property name="text">
+     <string>GERRIT_TOKENS-NA</string>
+    </property>
+    <property name="alignment">
+     <set>Qt::AlignCenter</set>
+    </property>
+   </widget>
+   <widget class="QLabel" name="label_6">
+    <property name="geometry">
+     <rect>
+      <x>30</x>
+      <y>360</y>
+      <width>141</width>
+      <height>51</height>
+     </rect>
+    </property>
+    <property name="font">
+     <font>
+      <family>LG스마트체2.0 Regular</family>
+      <pointsize>10</pointsize>
+     </font>
+    </property>
+    <property name="styleSheet">
+     <string notr="true">color: white;</string>
+    </property>
+    <property name="text">
+     <string>USERNAME</string>
+    </property>
+    <property name="alignment">
+     <set>Qt::AlignCenter</set>
+    </property>
+   </widget>
+   <widget class="QLabel" name="label_7">
+    <property name="geometry">
+     <rect>
+      <x>30</x>
+      <y>310</y>
+      <width>141</width>
+      <height>51</height>
+     </rect>
+    </property>
+    <property name="font">
+     <font>
+      <family>LG스마트체2.0 Regular</family>
+      <pointsize>10</pointsize>
+     </font>
+    </property>
+    <property name="styleSheet">
+     <string notr="true">color: white;</string>
+    </property>
+    <property name="text">
+     <string>GERRIT_TOKENS-AS</string>
+    </property>
+    <property name="alignment">
+     <set>Qt::AlignCenter</set>
+    </property>
+   </widget>
+   <widget class="QLineEdit" name="lineEdit_5">
+    <property name="geometry">
+     <rect>
+      <x>180</x>
+      <y>360</y>
+      <width>541</width>
+      <height>41</height>
+     </rect>
+    </property>
+    <property name="styleSheet">
+     <string notr="true">border: 2px solid black; background-color: rgb(255, 255, 255);</string>
+    </property>
+    <property name="text">
+     <string>USERNAME</string>
+    </property>
+    <property name="placeholderText">
+     <string>Gerrit</string>
+    </property>
+   </widget>
+   <widget class="QLineEdit" name="lineEdit_6">
+    <property name="geometry">
+     <rect>
+      <x>180</x>
+      <y>310</y>
+      <width>541</width>
+      <height>41</height>
+     </rect>
+    </property>
+    <property name="styleSheet">
+     <string notr="true">border: 2px solid black; background-color: rgb(255, 255, 255);</string>
+    </property>
+    <property name="text">
+     <string>GERRIT_TOKENS-AS</string>
+    </property>
+    <property name="placeholderText">
+     <string>Jira/Collab</string>
     </property>
    </widget>
   </widget>
@@ -226,7 +408,7 @@
     <rect>
      <x>0</x>
      <y>0</y>
-     <width>800</width>
+     <width>787</width>
      <height>21</height>
     </rect>
    </property>
