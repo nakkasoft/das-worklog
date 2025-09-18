@@ -3,6 +3,7 @@ import openai  # Import the OpenAI library for Exaone API
 import os
 from PyQt5 import QtWidgets, uic
 
+
 class MyApp(QtWidgets.QMainWindow):
     def __init__(self):
         super(MyApp, self).__init__()
@@ -20,8 +21,12 @@ class MyApp(QtWidgets.QMainWindow):
 
     def submitText(self):
         # Get the text from the input fields
-        user_input1 = self.lineEdit.text()
-        user_input2 = self.lineEdit_2.text()
+        jira_token = self.lineEdit.text()
+        confluence_token = self.lineEdit_2.text()
+        gerrit_token_na = self.lineEdit_3.text()
+        gerrit_token_eu = self.lineEdit_4.text()
+        gerrit_token_as = self.lineEdit_6.text()
+        username = self.lineEdit_5.text()
 
         # Define the directory where the .md file should exist
         worklog_directory = r"d:\WorklogApplication"
@@ -45,8 +50,25 @@ class MyApp(QtWidgets.QMainWindow):
                 response = openai.ChatCompletion.create(
                     model="LGAI-EXAONE/EXAONE-4.0.1-32B",
                     messages=[
-                        {"role": "system", "content": "You are a helpful assistant to use the data, find the person(Noted on the MD file) and list up worklog and share the full report"},
-                        {"role": "user", "content": f"Enter the following input site:\nInput1: {user_input1}\nInput2: {user_input2}\nFile Content:\n{md_content}"}
+                        {
+                            "role": "system",
+                            "content": (
+                                "You are a helpful assistant. Use the provided data to find the person "
+                                "(noted in the MD file), list their worklog, and share the full report."
+                            ),
+                        },
+                        {
+                            "role": "user",
+                            "content": (
+                                f"JIRA_TOKEN: {jira_token}\n"
+                                f"CONFLUENCE_TOKEN: {confluence_token}\n"
+                                f"GERRIT_TOKENS-NA: {gerrit_token_na}\n"
+                                f"GERRIT_TOKENS-EU: {gerrit_token_eu}\n"
+                                f"GERRIT_TOKENS-AS: {gerrit_token_as}\n"
+                                f"USERNAME: {username}\n"
+                                f"File Content:\n{md_content}"
+                            ),
+                        },
                     ],
                 )
 
@@ -55,12 +77,16 @@ class MyApp(QtWidgets.QMainWindow):
                 print("Message from Exaone Agent:", message)
 
                 # Notify the user of success and print the final success message
-                QtWidgets.QMessageBox.information(self, "Submission Successful", f"Result from Exaone Agent: {message}")
+                QtWidgets.QMessageBox.information(
+                    self, "Submission Successful", f"Result from Exaone Agent: {message}"
+                )
                 print("Final Success: The message has been processed successfully.")
             except Exception as e:
                 QtWidgets.QMessageBox.critical(self, "Error", f"An error occurred: {e}")
         else:
-            QtWidgets.QMessageBox.warning(self, "No .md File Found", "No valid .md file found in the WorklogApplication directory.")
+            QtWidgets.QMessageBox.warning(
+                self, "No .md File Found", "No valid .md file found in the WorklogApplication directory."
+            )
 
     def closeApp(self):
         self.close()
