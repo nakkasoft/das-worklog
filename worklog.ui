@@ -110,10 +110,10 @@
      <string notr="true">border: 2px solid black; background-color: rgb(255, 255, 255);</string>
     </property>
     <property name="text">
-     <string>JIRA_TOKEN</string>
+     <string/>
     </property>
     <property name="placeholderText">
-     <string>Jira/Collab</string>
+     <string/>
     </property>
    </widget>
    <widget class="QPushButton" name="pushButton">
@@ -173,10 +173,10 @@
      <string notr="true">border: 2px solid black; background-color: rgb(255, 255, 255);</string>
     </property>
     <property name="text">
-     <string>CONFLUENCE_TOKEN</string>
+     <string/>
     </property>
     <property name="placeholderText">
-     <string>Gerrit</string>
+     <string/>
     </property>
    </widget>
    <widget class="QLabel" name="instructionLabel">
@@ -264,10 +264,10 @@
      <string notr="true">border: 2px solid black; background-color: rgb(255, 255, 255);</string>
     </property>
     <property name="text">
-     <string>GERRIT_TOKENS-NA</string>
+     <string/>
     </property>
     <property name="placeholderText">
-     <string>Jira/Collab</string>
+     <string/>
     </property>
    </widget>
    <widget class="QLineEdit" name="lineEdit_4">
@@ -283,10 +283,10 @@
      <string notr="true">border: 2px solid black; background-color: rgb(255, 255, 255);</string>
     </property>
     <property name="text">
-     <string>GERRIT_TOKENS-EU</string>
+     <string/>
     </property>
     <property name="placeholderText">
-     <string>Gerrit</string>
+     <string/>
     </property>
    </widget>
    <widget class="QLabel" name="label_5">
@@ -377,10 +377,10 @@
      <string notr="true">border: 2px solid black; background-color: rgb(255, 255, 255);</string>
     </property>
     <property name="text">
-     <string>USERNAME</string>
+     <string/>
     </property>
     <property name="placeholderText">
-     <string>Gerrit</string>
+     <string/>
     </property>
    </widget>
    <widget class="QLineEdit" name="lineEdit_6">
@@ -396,10 +396,10 @@
      <string notr="true">border: 2px solid black; background-color: rgb(255, 255, 255);</string>
     </property>
     <property name="text">
-     <string>GERRIT_TOKENS-AS</string>
+     <string/>
     </property>
     <property name="placeholderText">
-     <string>Jira/Collab</string>
+     <string/>
     </property>
    </widget>
   </widget>
