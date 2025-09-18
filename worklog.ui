@@ -156,7 +156,7 @@
      <set>Qt::AlignCenter</set>
     </property>
    </widget>
-   <widget class="QLineEdit" name="lineEdit_3">
+   <widget class="QLabel" name="instructionLabel">
     <property name="geometry">
      <rect>
       <x>140</x>
@@ -165,11 +165,23 @@
       <height>41</height>
      </rect>
     </property>
+    <property name="font">
+     <font>
+      <pointsize>13</pointsize>
+      <kerning>true</kerning>
+     </font>
+    </property>
     <property name="styleSheet">
-     <string notr="true">border: 2px solid black; background-color: rgb(255, 255, 255);</string>
+     <string notr="true">color: white; border: 2px solid black; background-color: rgb(21, 96, 130);</string>
+    </property>
+    <property name="frameShadow">
+     <enum>QFrame::Plain</enum>
+    </property>
+    <property name="lineWidth">
+     <number>0</number>
     </property>
     <property name="text">
-     <string>MD 파일 선택</string>
+     <string>Attach a valid .md file in the WorklogApplication directory.</string>
     </property>
    </widget>
    <widget class="QLabel" name="label">
