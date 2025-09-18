@@ -46,7 +46,7 @@ class MyApp(QtWidgets.QMainWindow):
                     model="LGAI-EXAONE/EXAONE-4.0.1-32B",
                     messages=[
                         {"role": "system", "content": "You are a helpful assistant."},
-                        {"role": "user", "content": f"Enter the following input site:\nInput1: {user_input1}\nInput2: {user_input2}\nFile Content:\n{md_content}, then share the persons worklog result"}
+                        {"role": "user", "content": f"Enter the following input site:\nInput1: {user_input1}\nInput2: {user_input2}\nFile Content:\n{md_content}, please access the site and share the requested person's work log shared on the MD file, and write worklog report of the person for 1 week till now, you can share any details what the issue is, how the issue resolved, how many hours conducted"}
                     ],
                 )
 
