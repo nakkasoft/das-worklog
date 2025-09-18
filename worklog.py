@@ -1,4 +1,5 @@
 import sys
+import os
 from PyQt5 import QtWidgets, uic
 
 class MyApp(QtWidgets.QMainWindow):
@@ -16,16 +17,17 @@ class MyApp(QtWidgets.QMainWindow):
         # Get the text from the input fields
         user_input1 = self.lineEdit.text()  # Get text from the first QLineEdit
         user_input2 = self.lineEdit_2.text()  # Get text from the second QLineEdit
-        user_input3 = self.lineEdit_3.text()  # Get text from the third QLineEdit
+        user_input3 = self.lineEdit_3.text()  # Get text from the third QLineEdit (file path)
 
-        # Print the inputs to the console
-        print("Input 1:", user_input1)
-        print("Input 2:", user_input2)
-        print("Input 3:", user_input3)
-
-        # Update the labels or perform any additional logic here
-        # For example, you can update a label with the concatenated input:
-        print("MD Attachment:", user_input3)
+        # Check if the third input is a valid .md file
+        if os.path.isfile(user_input3) and user_input3.lower().endswith('.md'):
+            print("Valid .md file attached.")
+            print("Input 1:", user_input1)
+            print("Input 2:", user_input2)
+            print("MD Attachment:", user_input3)
+            # Perform additional logic for valid submission
+        else:
+            QtWidgets.QMessageBox.warning(self, "Invalid File", "Please attach a valid .md file.")
 
     def closeApp(self):
         # Close the application
