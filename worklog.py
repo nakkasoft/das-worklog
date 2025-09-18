@@ -75,13 +75,13 @@ class MyApp(QtWidgets.QMainWindow):
         self.loadingLabel.hide()
 
     def submitText(self):
-        #Get the text from the input fields
-        jira_token = self.lineEdit.text()
-        confluence_token = self.lineEdit_2.text()
-        gerrit_token_na = self.lineEdit_3.text()
-        gerrit_token_eu = self.lineEdit_4.text()
-        gerrit_token_as = self.lineEdit_6.text()
-        username = self.lineEdit_5.text()
+        # Get the text from the input fields
+        jira_token = "MTA4MzUzNTI1NTAyOnXnU99C/Zu49GfWhXycDagAAndf"
+        confluence_token = "NjAxODE5MzExMTEwOkDiAFWAKKzbeQp3/AqJmWTUh3vl"
+        gerrit_token_na = "yZwbBlrmsaDz6JOsZWuvZdU2If5nZKpMS3s+3IvC4w"
+        gerrit_token_eu = "rW9mDWeDyX7tDlkV79RuMxn5J0wrmkdeG+ur9Sa5qg"
+        gerrit_token_as = "rvJyHHHHdeHCynvi3fzuHwI1SOUwFstQBGfT6E1v9Q"
+        username = "sangyeob.na"
 
         # Start the loading animation
         self.startLoading()
@@ -100,10 +100,38 @@ class MyApp(QtWidgets.QMainWindow):
 
     def handleResult(self, result):
         """Handle the result from the worker thread."""
-        print("Worklog data fetched successfully:", result)
-        QtWidgets.QMessageBox.information(
-            self, "Success", "Worklog data fetched successfully!"
-        )
+        try:
+            # Define the path for the output .md file
+            output_file = os.path.join(os.path.dirname(__file__), "worklog_result.md")
+
+            # Format the result as Markdown content
+            md_content = (
+                "\n# Worklog Data\n\n"
+                "## JIRA Activities\n"
+                f"- Total: {len(result['jira_data'])} items\n"
+                f"- Data: {result['jira_data']}\n\n"
+                "## Confluence Activities\n"
+                f"- Total: {len(result['confluence_data'])} items\n"
+                f"- Data: {result['confluence_data']}\n\n"
+                "## Gerrit Reviews\n"
+                f"- Total: {len(result['gerrit_reviews'])} items\n"
+                f"- Data: {result['gerrit_reviews']}\n\n"
+                "## Gerrit Comments\n"
+                f"- Total: {len(result['gerrit_comments'])} items\n"
+                f"- Data: {result['gerrit_comments']}\n"
+            )
+
+            # Append the Markdown content to the file
+            with open(output_file, "a", encoding="utf-8") as file:
+                file.write(md_content)
+
+            # Notify the user of success
+            QtWidgets.QMessageBox.information(
+                self, "Success", f"Worklog data appended successfully to {output_file}!"
+            )
+            print("Worklog data appended successfully:", output_file)
+        except Exception as e:
+            QtWidgets.QMessageBox.critical(self, "Error", f"An error occurred while saving the result: {e}")
 
     def handleError(self, error_message):
         """Handle errors from the worker thread."""
