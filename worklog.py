@@ -34,6 +34,10 @@ class MyApp(QtWidgets.QMainWindow):
             print("Input 1:", user_input1)
             print("Input 2:", user_input2)
             print("MD Attachment:", md_file)
+            
+            # Notify the user that the input is successfully submitted
+            QtWidgets.QMessageBox.information(self, "Submission Successful", "Your input has been successfully submitted. The result will be shared shortly.")
+            
             # Perform additional logic for valid submission
         else:
             QtWidgets.QMessageBox.warning(self, "No .md File Found", "No valid .md file found in the WorklogApplication directory.")
