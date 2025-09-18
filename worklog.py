@@ -35,10 +35,17 @@ class MyApp(QtWidgets.QMainWindow):
             print("Input 2:", user_input2)
             print("MD Attachment:", md_file)
             
-            # Notify the user that the input is successfully submitted
-            QtWidgets.QMessageBox.information(self, "Submission Successful", "Your input has been successfully submitted. The result will be shared shortly.")
-            
-            # Perform additional logic for valid submission
+            # Open the .md file, read its contents, and close it
+            try:
+                with open(md_file, 'r', encoding='utf-8') as file:
+                    md_content = file.read()
+                print("Contents of the .md file:")
+                print(md_content)
+                
+                # Notify the user that the input is successfully submitted
+                QtWidgets.QMessageBox.information(self, "Submission Successful", "Your input has been successfully submitted. The result will be shared shortly.")
+            except Exception as e:
+                QtWidgets.QMessageBox.critical(self, "Error", f"An error occurred while reading the .md file: {e}")
         else:
             QtWidgets.QMessageBox.warning(self, "No .md File Found", "No valid .md file found in the WorklogApplication directory.")
 
