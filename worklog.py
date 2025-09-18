@@ -80,8 +80,8 @@ class MyApp(QtWidgets.QMainWindow):
         confluence_token = self.lineEdit_2.text()
         gerrit_token_na = self.lineEdit_3.text()
         gerrit_token_eu = self.lineEdit_4.text()
-        gerrit_token_as = self.lineEdit_5.text()
-        username = self.lineEdit_6.text()
+        gerrit_token_as = self.lineEdit_6.text()
+        username = self.lineEdit_5.text()
 
         # Start the loading animation
         self.startLoading()
