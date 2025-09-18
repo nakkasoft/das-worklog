@@ -2,12 +2,12 @@ import sys
 import openai  # Import the OpenAI library for Exaone API
 import os
 from PyQt5 import QtWidgets, uic
-
+import worklog_extractor
 
 class MyApp(QtWidgets.QMainWindow):
     def __init__(self):
         super(MyApp, self).__init__()
-        uic.loadUi(r"d:\WorklogApplication\worklog.ui", self)  # Load the .ui file
+        uic.loadUi(r"worklog.ui", self)  # Load the .ui file
 
         # Connect the submit button to the callback function
         self.pushButton.clicked.connect(self.submitText)
@@ -28,8 +28,12 @@ class MyApp(QtWidgets.QMainWindow):
         gerrit_token_as = self.lineEdit_6.text()
         username = self.lineEdit_5.text()
 
+
+        rtn = self.fetch_all_worklog_data(username, jira_token, confluence_token, {"NA": gerrit_token_na, "EU": gerrit_token_eu, "AS": gerrit_token_as})
+        print(rtn)
+
         # Define the directory where the .md file should exist
-        worklog_directory = r"d:\WorklogApplication"
+        worklog_directory = os.path.dirname(os.path.abspath(__file__))
 
         # Find the first valid .md file in the directory
         md_file = None
@@ -60,12 +64,16 @@ class MyApp(QtWidgets.QMainWindow):
                         {
                             "role": "user",
                             "content": (
-                                f"JIRA_TOKEN: {jira_token}\n"
-                                f"CONFLUENCE_TOKEN: {confluence_token}\n"
-                                f"GERRIT_TOKENS-NA: {gerrit_token_na}\n"
-                                f"GERRIT_TOKENS-EU: {gerrit_token_eu}\n"
-                                f"GERRIT_TOKENS-AS: {gerrit_token_as}\n"
                                 f"USERNAME: {username}\n"
+                                f"WORKLOG DATA:\n"
+                                f"JIRA Activities: {len(rtn['jira_data'])} items\n"
+                                f"JIRA Data: {rtn['jira_data']}\n\n"
+                                f"CONFLUENCE Activities: {len(rtn['confluence_data'])} items\n"
+                                f"CONFLUENCE Data: {rtn['confluence_data']}\n\n"
+                                f"GERRIT Reviews: {len(rtn['gerrit_reviews'])} items\n"
+                                f"GERRIT Reviews Data: {rtn['gerrit_reviews']}\n\n"
+                                f"GERRIT Comments: {len(rtn['gerrit_comments'])} items\n"
+                                f"GERRIT Comments Data: {rtn['gerrit_comments']}\n\n"
                                 f"File Content:\n{md_content}"
                             ),
                         },
@@ -73,7 +81,8 @@ class MyApp(QtWidgets.QMainWindow):
                 )
 
                 # Handle the response from the Exaone agent
-                message = response["choices"][0]["message"]["content"]
+                #message = response["choices"][0]["message"]["content"]
+                message = response.choices[0].message.content
                 print("Message from Exaone Agent:", message)
 
                 # Notify the user of success and print the final success message
@@ -90,6 +99,28 @@ class MyApp(QtWidgets.QMainWindow):
 
     def closeApp(self):
         self.close()
+
+    def fetch_all_worklog_data(self, username, jira_token, confluence_token, gerrit_tokens):
+        """
+        worklog_extractor의 collect_jira_data, collect_confluence_data, collect_gerrit_data를 호출하여
+        모든 데이터를 가져오는 함수
+        Args:
+            username (str): 사용자명
+            jira_token (str): Jira API 토큰
+            confluence_token (str): Confluence API 토큰
+            gerrit_tokens (dict): Gerrit 서버별 토큰 {"NA": token, "EU": token, "AS": token}
+        Returns:
+            dict: 모든 시스템의 데이터
+        """
+        jira_data = worklog_extractor.collect_jira_data(username, jira_token)
+        confluence_data = worklog_extractor.collect_confluence_data(username, confluence_token)
+        gerrit_reviews, gerrit_comments = worklog_extractor.collect_gerrit_data(username, gerrit_tokens)
+        return {
+            "jira_data": jira_data,
+            "confluence_data": confluence_data,
+            "gerrit_reviews": gerrit_reviews,
+            "gerrit_comments": gerrit_comments
+        }
 
 
 if __name__ == "__main__":
