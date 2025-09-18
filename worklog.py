@@ -1,77 +1,36 @@
 import sys
-from PyQt5.QtWidgets import QApplication, QWidget, QLabel, QPushButton, QVBoxLayout, QLineEdit
-from PyQt5.QtGui import QPalette, QColor
-from PyQt5.QtCore import Qt  # Import Qt for alignment
+from PyQt5 import QtWidgets, uic
 
-class MyWindow(QWidget):
+class MyApp(QtWidgets.QMainWindow):
     def __init__(self):
-        super().__init__()
-        self.initUI()
+        super(MyApp, self).__init__()
+        uic.loadUi("temp.ui", self)   # 1. temp.ui 불러오기
 
-    def initUI(self):
-        self.setWindowTitle('Welcome to Worklog Genie!!!')  # Updated the window title
-        self.setGeometry(100, 100, 400, 500)  # x, y, width, height
+        # 2. 라벨 텍스트 읽기 (개별 접근)
+        print("label text:", self.label.text())
+        print("label_2 text:", self.label_2.text())
+        print("label_3 text:", self.label_3.text())
+        print("label_4 text:", self.label_4.text())
+        print("label_5 text:", self.label_5.text())
+        print("label_6 text:", self.label_6.text())
 
-        # Set azure blue background color
-        self.setAutoFillBackground(True)
-        palette = self.palette()
-        palette.setColor(QPalette.Window, QColor('#F0FFFF'))  # Azure blue color
-        self.setPalette(palette)
+        # 3. 버튼 클릭 → 콜백 연결
+        self.pushButton.clicked.connect(self.tempCallBack)
 
-        # Create a label
-        self.label = QLabel('Welcome to Worklog Genie!!!', self)
-        self.label.setAlignment(Qt.AlignCenter)  # Align the label text to the center
+    def tempCallBack(self):
+        print("pushButton clicked!")
 
-        # Create labels for instructions
-        self.input_label1 = QLabel('Key: JIRA/Collab', self)
-        self.input_label2 = QLabel('Key: Gerrit', self)
-        self.md_file_label = QLabel('Enter the path or name of the .md file:', self)
+        # 콜백 실행 시 라벨 값 다시 출력 (개별 접근)
+        print("label text:", self.label.text())
+        print("label_2 text:", self.label_2.text())
+        print("label_3 text:", self.label_3.text())
+        print("label_4 text:", self.label_4.text())
+        print("label_5 text:", self.label_5.text())
+        print("label_6 text:", self.label_6.text())
 
-        # Create input fields
-        self.input_field1 = QLineEdit(self)
-        self.input_field1.setPlaceholderText('Enter first input here')
 
-        self.input_field2 = QLineEdit(self)
-        self.input_field2.setPlaceholderText('Enter second input here')
-
-        self.md_file_input = QLineEdit(self)
-        self.md_file_input.setPlaceholderText('Enter .md file path or name here')
-
-        # Create buttons
-        self.submit_button = QPushButton('Submit', self)
-        self.submit_button.clicked.connect(self.submit_text)
-
-        self.close_button = QPushButton('Close', self)
-        self.close_button.clicked.connect(self.close_app)
-
-        # Layout
-        layout = QVBoxLayout()
-        layout.addWidget(self.label)
-        layout.addWidget(self.input_label1)
-        layout.addWidget(self.input_field1)
-        layout.addWidget(self.input_label2)
-        layout.addWidget(self.input_field2)
-        layout.addWidget(self.md_file_label)
-        layout.addWidget(self.md_file_input)
-        layout.addWidget(self.submit_button)
-        layout.addWidget(self.close_button)
-
-        self.setLayout(layout)
-
-    def close_app(self):
-        self.close()
-
-    def submit_text(self):
-        user_input1 = self.input_field1.text()
-        user_input2 = self.input_field2.text()
-        md_file_input = self.md_file_input.text()
-        if user_input1.strip() and user_input2.strip() and md_file_input.strip():  # Check if all inputs are not empty
-            self.label.setText(f'{user_input1} {user_input2}\nMD File: {md_file_input}')
-        else:
-            self.label.setText('Please fill in all inputs!')
-
-if __name__ == '__main__':
-    app = QApplication(sys.argv)
-    window = MyWindow()
+if __name__ == "__main__":
+    app = QtWidgets.QApplication(sys.argv)
+    window = MyApp()
     window.show()
     sys.exit(app.exec_())
