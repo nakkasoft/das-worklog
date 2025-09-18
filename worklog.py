@@ -75,13 +75,13 @@ class MyApp(QtWidgets.QMainWindow):
         self.loadingLabel.hide()
 
     def submitText(self):
-        # Get the text from the input fields
-        jira_token = "MTA4MzUzNTI1NTAyOnXnU99C/Zu49GfWhXycDagAAndf"
-        confluence_token = "NjAxODE5MzExMTEwOkDiAFWAKKzbeQp3/AqJmWTUh3vl"
-        gerrit_token_na = "yZwbBlrmsaDz6JOsZWuvZdU2If5nZKpMS3s+3IvC4w"
-        gerrit_token_eu = "rW9mDWeDyX7tDlkV79RuMxn5J0wrmkdeG+ur9Sa5qg"
-        gerrit_token_as = "rvJyHHHHdeHCynvi3fzuHwI1SOUwFstQBGfT6E1v9Q"
-        username = "sangyeob.na"
+        #Get the text from the input fields
+        jira_token = self.lineEdit.text()
+        confluence_token = self.lineEdit_2.text()
+        gerrit_token_na = self.lineEdit_3.text()
+        gerrit_token_eu = self.lineEdit_4.text()
+        gerrit_token_as = self.lineEdit_5.text()
+        username = self.lineEdit_6.text()
 
         # Start the loading animation
         self.startLoading()
