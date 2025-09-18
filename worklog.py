@@ -4,29 +4,32 @@ from PyQt5 import QtWidgets, uic
 class MyApp(QtWidgets.QMainWindow):
     def __init__(self):
         super(MyApp, self).__init__()
-        uic.loadUi("temp.ui", self)   # 1. temp.ui 불러오기
+        uic.loadUi(r"d:\WorklogApplication\worklog.ui", self)  # Load the .ui file
 
-        # 2. 라벨 텍스트 읽기 (개별 접근)
-        print("label text:", self.label.text())
-        print("label_2 text:", self.label_2.text())
-        print("label_3 text:", self.label_3.text())
-        print("label_4 text:", self.label_4.text())
-        print("label_5 text:", self.label_5.text())
-        print("label_6 text:", self.label_6.text())
+        # Connect the submit button to the callback function
+        self.pushButton.clicked.connect(self.submitText)
 
-        # 3. 버튼 클릭 → 콜백 연결
-        self.pushButton.clicked.connect(self.tempCallBack)
+        # Connect the close button to the close function
+        self.closeButton.clicked.connect(self.closeApp)
 
-    def tempCallBack(self):
-        print("pushButton clicked!")
+    def submitText(self):
+        # Get the text from the input fields
+        user_input1 = self.lineEdit.text()  # Get text from the first QLineEdit
+        user_input2 = self.lineEdit_2.text()  # Get text from the second QLineEdit
+        user_input3 = self.lineEdit_3.text()  # Get text from the third QLineEdit
 
-        # 콜백 실행 시 라벨 값 다시 출력 (개별 접근)
-        print("label text:", self.label.text())
-        print("label_2 text:", self.label_2.text())
-        print("label_3 text:", self.label_3.text())
-        print("label_4 text:", self.label_4.text())
-        print("label_5 text:", self.label_5.text())
-        print("label_6 text:", self.label_6.text())
+        # Print the inputs to the console
+        print("Input 1:", user_input1)
+        print("Input 2:", user_input2)
+        print("Input 3:", user_input3)
+
+        # Update the labels or perform any additional logic here
+        # For example, you can update a label with the concatenated input:
+        print("MD Attachment:", user_input3)
+
+    def closeApp(self):
+        # Close the application
+        self.close()
 
 
 if __name__ == "__main__":
