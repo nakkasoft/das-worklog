@@ -18,15 +18,6 @@ class MyApp(QtWidgets.QMainWindow):
         openai.api_key = "flp_EUGAW1hNHAFgtE4dIgivHZZTCOg4iQiKrFRzwqdL0Uhd3"  # Replace with your actual API key
         openai.api_base = "https://api.friendli.ai/serverless/v1"
 
-    def sendEmail(self, subject, body):
-        """Simulate sending an email."""
-        recipient_email = "yongchaekim94@gmail.com"  # Recipient's email address
-        print(f"Simulating email sending...")
-        print(f"To: {recipient_email}")
-        print(f"Subject: {subject}")
-        print(f"Body:\n{body}")
-        print("Email simulated successfully.")
-
     def submitText(self):
         # Get the text from the input fields
         user_input1 = self.lineEdit.text()
@@ -54,8 +45,8 @@ class MyApp(QtWidgets.QMainWindow):
                 response = openai.ChatCompletion.create(
                     model="LGAI-EXAONE/EXAONE-4.0.1-32B",
                     messages=[
-                        {"role": "system", "content": "You are a helpful assistant to use the data, find the persons worklog and make send report to the email."},
-                        {"role": "user", "content": f"Enter the following input site:\nInput1: {user_input1}\nInput2: {user_input2}\nFile Content:\n{md_content}, please access the site and share the requested person's work log shared on the MD file, and write worklog report of the person for 1 week till now, you can share any details what the issue is, how the issue resolved, how many hours conducted"}
+                        {"role": "system", "content": "You are a helpful assistant to use the data, find the person(Noted on the MD file) and list up worklog and share the full report"},
+                        {"role": "user", "content": f"Enter the following input site:\nInput1: {user_input1}\nInput2: {user_input2}\nFile Content:\n{md_content}"}
                     ],
                 )
 
@@ -63,14 +54,8 @@ class MyApp(QtWidgets.QMainWindow):
                 message = response["choices"][0]["message"]["content"]
                 print("Message from Exaone Agent:", message)
 
-                # Simulate sending the result via email
-                self.sendEmail(
-                    subject="Worklog Report",
-                    body=f"Result from Exaone Agent:\n\n{message}"
-                )
-
                 # Notify the user of success and print the final success message
-                QtWidgets.QMessageBox.information(self, "Submission Successful", f"Result from Exaone Agent: {message}\n\nThe result has been simulated as sent to yongchae.kim@lge.com.")
+                QtWidgets.QMessageBox.information(self, "Submission Successful", f"Result from Exaone Agent: {message}")
                 print("Final Success: The message has been processed successfully.")
             except Exception as e:
                 QtWidgets.QMessageBox.critical(self, "Error", f"An error occurred: {e}")
