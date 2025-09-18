@@ -198,7 +198,7 @@
      <string notr="true">color: white; background-color: rgb(21, 96, 130);</string>
     </property>
     <property name="text">
-     <string>Attach a valid .md file in the WorklogApplication directory.</string>
+     <string>Result will be output on a worklog_result.md. Please check this file!!!</string>
     </property>
    </widget>
    <widget class="QLabel" name="label_3">
