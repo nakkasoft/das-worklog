@@ -30,22 +30,6 @@
      <string/>
     </property>
    </widget>
-   <widget class="QLabel" name="label">
-    <property name="geometry">
-     <rect>
-      <x>160</x>
-      <y>140</y>
-      <width>541</width>
-      <height>51</height>
-     </rect>
-    </property>
-    <property name="styleSheet">
-     <string notr="true">border: 2px solid black; background-color: rgb(246, 198, 173);</string>
-    </property>
-    <property name="text">
-     <string/>
-    </property>
-   </widget>
    <widget class="QLabel" name="label_2">
     <property name="geometry">
      <rect>
@@ -71,27 +55,87 @@
      <set>Qt::AlignCenter</set>
     </property>
    </widget>
-   <widget class="QLabel" name="label_3">
+   <widget class="QLineEdit" name="lineEdit">
     <property name="geometry">
      <rect>
-      <x>160</x>
-      <y>210</y>
+      <x>140</x>
+      <y>140</y>
       <width>541</width>
-      <height>51</height>
+      <height>41</height>
      </rect>
     </property>
     <property name="styleSheet">
-     <string notr="true">border: 2px solid black; background-color: rgb(246, 198, 173);</string>
+     <string notr="true">border: 2px solid black; background-color: rgb(255, 255, 255);</string>
     </property>
-    <property name="text">
-     <string/>
+    <property name="placeholderText">
+     <string>Jira/Collab</string>
     </property>
    </widget>
-   <widget class="QLabel" name="label_4">
+   <widget class="QPushButton" name="pushButton">
+    <property name="geometry">
+     <rect>
+      <x>300</x>
+      <y>370</y>
+      <width>201</width>
+      <height>71</height>
+     </rect>
+    </property>
+    <property name="font">
+     <font>
+      <family>LG스마트체2.0 Regular</family>
+      <pointsize>18</pointsize>
+     </font>
+    </property>
+    <property name="styleSheet">
+     <string notr="true">border: 2px solid black; background-color: rgb(131, 203, 235); border-radius: 10px; color: white;</string>
+    </property>
+    <property name="text">
+     <string>Submit</string>
+    </property>
+   </widget>
+   <widget class="QPushButton" name="closeButton">
+    <property name="geometry">
+     <rect>
+      <x>300</x>
+      <y>460</y>
+      <width>201</width>
+      <height>41</height>
+     </rect>
+    </property>
+    <property name="font">
+     <font>
+      <family>LG스마트체2.0 Regular</family>
+      <pointsize>14</pointsize>
+     </font>
+    </property>
+    <property name="styleSheet">
+     <string notr="true">border: 2px solid black; background-color: rgb(255, 69, 58); border-radius: 10px; color: white;</string>
+    </property>
+    <property name="text">
+     <string>Close</string>
+    </property>
+   </widget>
+   <widget class="QLineEdit" name="lineEdit_2">
+    <property name="geometry">
+     <rect>
+      <x>140</x>
+      <y>200</y>
+      <width>541</width>
+      <height>41</height>
+     </rect>
+    </property>
+    <property name="styleSheet">
+     <string notr="true">border: 2px solid black; background-color: rgb(255, 255, 255);</string>
+    </property>
+    <property name="placeholderText">
+     <string>Gerrit</string>
+    </property>
+   </widget>
+   <widget class="QLabel" name="label_3">
     <property name="geometry">
      <rect>
       <x>30</x>
-      <y>340</y>
+      <y>290</y>
       <width>101</width>
       <height>51</height>
      </rect>
@@ -112,67 +156,43 @@
      <set>Qt::AlignCenter</set>
     </property>
    </widget>
-   <widget class="QLabel" name="label_5">
+   <widget class="QLineEdit" name="lineEdit_3">
     <property name="geometry">
      <rect>
-      <x>160</x>
-      <y>340</y>
+      <x>140</x>
+      <y>290</y>
       <width>541</width>
-      <height>51</height>
+      <height>41</height>
      </rect>
     </property>
     <property name="styleSheet">
-     <string notr="true">border: 2px solid black; background-color: rgb(246, 198, 173);</string>
+     <string notr="true">border: 2px solid black; background-color: rgb(255, 255, 255);</string>
     </property>
     <property name="text">
-     <string/>
+     <string>MD 파일 선택</string>
     </property>
    </widget>
-   <widget class="QPushButton" name="pushButton">
+   <widget class="QLabel" name="label">
     <property name="geometry">
      <rect>
-      <x>300</x>
-      <y>430</y>
-      <width>201</width>
-      <height>71</height>
+      <x>230</x>
+      <y>80</y>
+      <width>331</width>
+      <height>31</height>
      </rect>
     </property>
     <property name="font">
      <font>
-      <family>LG스마트체2.0 Regular</family>
-      <pointsize>18</pointsize>
-     </font>
-    </property>
-    <property name="styleSheet">
-     <string notr="true">border: 2px solid black; background-color: rgb(131, 203, 235); border-radius: 10px; color: white;</string>
-    </property>
-    <property name="text">
-     <string>생성</string>
-    </property>
-   </widget>
-   <widget class="QLabel" name="label_6">
-    <property name="geometry">
-     <rect>
-      <x>270</x>
-      <y>40</y>
-      <width>271</width>
-      <height>51</height>
-     </rect>
-    </property>
-    <property name="font">
-     <font>
-      <family>LG스마트체2.0 Regular</family>
-      <pointsize>18</pointsize>
+      <pointsize>22</pointsize>
+      <weight>75</weight>
+      <bold>true</bold>
      </font>
     </property>
     <property name="styleSheet">
      <string notr="true">color: white;</string>
     </property>
     <property name="text">
-     <string>프로젝트 이름</string>
-    </property>
-    <property name="alignment">
-     <set>Qt::AlignCenter</set>
+     <string>Worklog Application!!!</string>
     </property>
    </widget>
   </widget>
