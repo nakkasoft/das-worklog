@@ -17,17 +17,26 @@ class MyApp(QtWidgets.QMainWindow):
         # Get the text from the input fields
         user_input1 = self.lineEdit.text()  # Get text from the first QLineEdit
         user_input2 = self.lineEdit_2.text()  # Get text from the second QLineEdit
-        user_input3 = self.lineEdit_3.text()  # Get text from the third QLineEdit (file path)
 
-        # Check if the third input is a valid .md file
-        if os.path.isfile(user_input3) and user_input3.lower().endswith('.md'):
-            print("Valid .md file attached.")
+        # Define the directory where the .md file should exist
+        worklog_directory = r"d:\WorklogApplication"
+
+        # Find the first valid .md file in the directory
+        md_file = None
+        for file in os.listdir(worklog_directory):
+            if file.lower().endswith('.md'):
+                md_file = os.path.join(worklog_directory, file)
+                break
+
+        # Check if a valid .md file was found
+        if md_file:
+            print("Valid .md file found in WorklogApplication directory.")
             print("Input 1:", user_input1)
             print("Input 2:", user_input2)
-            print("MD Attachment:", user_input3)
+            print("MD Attachment:", md_file)
             # Perform additional logic for valid submission
         else:
-            QtWidgets.QMessageBox.warning(self, "Invalid File", "Please attach a valid .md file.")
+            QtWidgets.QMessageBox.warning(self, "No .md File Found", "No valid .md file found in the WorklogApplication directory.")
 
     def closeApp(self):
         # Close the application
