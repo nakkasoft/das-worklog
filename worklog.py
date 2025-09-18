@@ -70,6 +70,7 @@ class MyApp(QtWidgets.QMainWindow):
                     "input2": user_input2,
                     "file_content": md_content
                 }
+                # Package the json and send the Json to the Copilot agent to conduct the worklog.
                 response = requests.post(copilot_url, json=payload)
 
                 # Handle the response from the Copilot agent
