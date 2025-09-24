@@ -2,6 +2,7 @@ import sys
 # Exaone openai 라이브러리 제거 후 Azure OpenAI 클라이언트 사용
 from openai import AzureOpenAI
 import os
+import json
 from PyQt5 import QtWidgets, uic
 import worklog_extractor
 
@@ -16,39 +17,116 @@ class MyApp(QtWidgets.QMainWindow):
         # Connect the close button to the close function
         self.closeButton.clicked.connect(self.closeApp)
 
-        # Azure OpenAI 설정 (환경변수 없으면 기본값 사용)
-        self.azure_endpoint = os.environ.get("AZURE_OPENAI_ENDPOINT", "https://25-fianl-hac.openai.azure.com/")
-        self.azure_api_key = os.environ.get("AZURE_OPENAI_API_KEY", "<실제 api key>")  # 실제 키는 환경변수로
-        self.azure_api_version = os.environ.get("AZURE_OPENAI_API_VERSION", "2024-05-01-preview")
-        self.chat_deployment = os.environ.get("AZURE_OPENAI_CHAT_DEPLOYMENT", "gpt-5")
+        # 설정 파일 로드
+        self.config = self.load_config()
+        if not self.config:
+            return  # 설정 로드 실패시 초기화 중단
 
-        self.client = AzureOpenAI(
-            azure_endpoint=self.azure_endpoint,
-            api_key=self.azure_api_key,
-            api_version=self.azure_api_version,
-        )
+        # Azure OpenAI 설정
+        try:
+            self.client = AzureOpenAI(
+                azure_endpoint=self.config["azure_openai_endpoint"],
+                api_key=self.config["azure_openai_api_key"],
+                api_version=self.config["azure_openai_api_version"],
+            )
+        except KeyError as e:
+            QtWidgets.QMessageBox.critical(
+                self, "설정 오류", 
+                f"user_config.json 파일에 필수 Azure OpenAI 설정이 누락되었습니다: {e}"
+            )
+            return
+        except Exception as e:
+            QtWidgets.QMessageBox.critical(
+                self, "연결 오류", 
+                f"Azure OpenAI 클라이언트 생성 실패: {e}"
+            )
+            return
+
+    def load_config(self):
+        """사용자 설정 파일을 로드합니다."""
+        config_file = os.path.join(os.path.dirname(__file__), "user_config.json")
+        
+        if not os.path.exists(config_file):
+            QtWidgets.QMessageBox.critical(
+                self, "설정 파일 없음", 
+                f"설정 파일을 찾을 수 없습니다: {config_file}\n"
+                "user_config.json 파일을 생성하고 API 키들을 설정하세요."
+            )
+            return None
+        
+        try:
+            with open(config_file, 'r', encoding='utf-8') as f:
+                config = json.load(f)
+                
+            # 필수 키들이 있는지 확인
+            required_keys = [
+                "username", "azure_openai_api_key", "azure_openai_endpoint",
+                "azure_openai_api_version", "azure_openai_chat_deployment",
+                "jira_token", "confluence_token", "gerrit_token_na",
+                "gerrit_token_eu", "gerrit_token_as"
+            ]
+            
+            missing_keys = [key for key in required_keys if not config.get(key) or config[key] == f"your_{key}_here"]
+            
+            if missing_keys:
+                QtWidgets.QMessageBox.warning(
+                    self, "설정 확인 필요", 
+                    f"user_config.json에서 다음 설정값들을 확인하세요:\n{', '.join(missing_keys)}"
+                )
+            
+            return config
+            
+        except json.JSONDecodeError as e:
+            QtWidgets.QMessageBox.critical(
+                self, "설정 파일 오류", 
+                f"user_config.json 파일 형식이 올바르지 않습니다:\n{e}"
+            )
+            return None
+        except Exception as e:
+            QtWidgets.QMessageBox.critical(
+                self, "파일 읽기 오류", 
+                f"설정 파일을 읽는 중 오류가 발생했습니다:\n{e}"
+            )
+            return None
 
     def submitText(self):
-        # Get the text from the input fields (현재는 하드코딩)
-        # jira_token = self.lineEdit.text()
-        # confluence_token = self.lineEdit_2.text()
-        # gerrit_token_na = self.lineEdit_3.text()
-        # gerrit_token_eu = self.lineEdit_4.text()
-        # gerrit_token_as = self.lineEdit_6.text()
-        # username = self.lineEdit_5.text()
+        # 설정 파일에서 값들 읽어오기
+        if not self.config:
+            QtWidgets.QMessageBox.critical(self, "오류", "설정이 로드되지 않았습니다.")
+            return
+            
+        try:
+            username = self.config["username"]
+            jira_token = self.config["jira_token"]
+            confluence_token = self.config["confluence_token"]
+            gerrit_tokens = {
+                "NA": self.config["gerrit_token_na"],
+                "EU": self.config["gerrit_token_eu"],
+                "AS": self.config["gerrit_token_as"]
+            }
+            
+            print(f"사용자: {username}")
+            print("설정 파일에서 토큰들이 로드되었습니다.")
 
-        jira_token = "MTA4MzUzNTI1NTAyOnXnU99C/Zu49GfWhXycDagAAndf"
-        confluence_token = "NjAxODE5MzExMTEwOkDiAFWAKKzbeQp3/AqJmWTUh3vl"
-        gerrit_token_na = "yZwbBlrmsaDz6JOsZWuvZdU2If5nZKpMS3s+3IvC4w"
-        gerrit_token_eu = "rW9mDWeDyX7tDlkV79RuMxn5J0wrmkdeG+ur9Sa5qg"
-        gerrit_token_as = "rvJyHHHHdeHCynvi3fzuHwI1SOUwFstQBGfT6E1v9Q"
-        username = "sangyeob.na"
-
-        rtn = self.fetch_all_worklog_data(username, jira_token, confluence_token, {"NA": gerrit_token_na, "EU": gerrit_token_eu, "AS": gerrit_token_as})
-        print(rtn)
+            rtn = self.fetch_all_worklog_data(username, jira_token, confluence_token, gerrit_tokens)
+            print(rtn)
+            
+        except KeyError as e:
+            QtWidgets.QMessageBox.critical(
+                self, "설정 오류", 
+                f"user_config.json에 필요한 설정이 없습니다: {e}"
+            )
+            return
+        except Exception as e:
+            QtWidgets.QMessageBox.critical(
+                self, "오류", 
+                f"데이터 수집 중 오류가 발생했습니다: {e}"
+            )
+            return
 
         # Define the directory where the .md file should exist
         worklog_directory = os.path.dirname(os.path.abspath(__file__))
+        
 
         # Find the first valid .md file in the directory
         md_file = None
@@ -67,7 +145,7 @@ class MyApp(QtWidgets.QMainWindow):
 
                 # Azure OpenAI(Chat Completions) 호출
                 completion = self.client.chat.completions.create(
-                    model=self.chat_deployment,
+                    model=self.config["azure_openai_chat_deployment"],
                     messages=[
                         {
                             "role": "user",
@@ -119,9 +197,23 @@ class MyApp(QtWidgets.QMainWindow):
         Returns:
             dict: 모든 시스템의 데이터
         """
+        print(f"=== fetch_all_worklog_data 시작 ===")
+        print(f"사용자: {username}")
+        print("각 시스템에서 데이터 수집을 시작합니다...")
+        
+        print("JIRA 데이터 수집 중...")
         jira_data = worklog_extractor.collect_jira_data(username, jira_token)
+        print(f"JIRA 데이터 수집 완료: {len(jira_data)}개 항목")
+        
+        print("Confluence 데이터 수집 중...")
         confluence_data = worklog_extractor.collect_confluence_data(username, confluence_token)
+        print(f"Confluence 데이터 수집 완료: {len(confluence_data)}개 항목")
+        
+        print("Gerrit 데이터 수집 중...")
         gerrit_reviews, gerrit_comments = worklog_extractor.collect_gerrit_data(username, gerrit_tokens)
+        print(f"Gerrit 데이터 수집 완료: 리뷰 {len(gerrit_reviews)}개, 댓글 {len(gerrit_comments)}개")
+        
+        print("=== fetch_all_worklog_data 완료 ===")
         return {
             "jira_data": jira_data,
             "confluence_data": confluence_data,
