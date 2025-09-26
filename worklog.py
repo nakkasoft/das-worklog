@@ -11,11 +11,10 @@ class MyApp(QtWidgets.QMainWindow):
         super(MyApp, self).__init__()
         uic.loadUi(r"worklog.ui", self)  # Load the .ui file
 
-        # Connect the submit button to the callback function
-        self.pushButton.clicked.connect(self.submitText)
-
-        # Connect the close button to the close function
-        self.closeButton.clicked.connect(self.closeApp)
+        # Connect the buttons to their respective functions
+        self.pushButton.clicked.connect(self.submitText)  # Generate button
+        self.closeButton.clicked.connect(self.closeApp)  # Close button
+        self.pushButton_3.clicked.connect(self.openSettings)  # Setting button
 
         # 설정 파일 로드
         self.config = self.load_config()
@@ -88,6 +87,11 @@ class MyApp(QtWidgets.QMainWindow):
                 f"설정 파일을 읽는 중 오류가 발생했습니다:\n{e}"
             )
             return None
+        
+    def openSettings(self):
+        """Open the settings dialog."""
+        self.settings_dialog = SettingsDialog(self)
+        self.settings_dialog.exec_()
 
     def submitText(self):
         # 설정 파일에서 값들 읽어오기
@@ -221,6 +225,13 @@ class MyApp(QtWidgets.QMainWindow):
             "gerrit_comments": gerrit_comments
         }
 
+class SettingsDialog(QtWidgets.QDialog):
+    def __init__(self, parent=None):
+        super(SettingsDialog, self).__init__(parent)
+        uic.loadUi(r"settings.ui", self)  # Load the settings UI file
+
+        # Connect the "Close Settings" button to close the dialog
+        self.closeSettingsButton.clicked.connect(self.close)
 
 if __name__ == "__main__":
     app = QtWidgets.QApplication(sys.argv)
