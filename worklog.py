@@ -230,8 +230,63 @@ class SettingsDialog(QtWidgets.QDialog):
         super(SettingsDialog, self).__init__(parent)
         uic.loadUi(r"settings.ui", self)  # Load the settings UI file
 
-        # Connect the "Close Settings" button to close the dialog
+        # Load existing settings into the input fields
+        self.loadSettings()
+
+        # Connect the buttons to their respective functions
+        self.saveSettingsButton.clicked.connect(self.saveSettings)
         self.closeSettingsButton.clicked.connect(self.close)
+
+    def loadSettings(self):
+        """Load existing settings into the input fields."""
+        config_file = os.path.join(os.path.dirname(__file__), "user_config.json")
+        if os.path.exists(config_file):
+            with open(config_file, "r", encoding="utf-8") as f:
+                config = json.load(f)
+                self.usernameInput.setText(config.get("username", ""))
+                self.jiraTokenInput.setText(config.get("jira_token", ""))
+                self.confluenceTokenInput.setText(config.get("confluence_token", ""))
+                self.gerritTokenNaInput.setText(config.get("gerrit_token_na", ""))
+                self.gerritTokenEuInput.setText(config.get("gerrit_token_eu", ""))
+                self.gerritTokenAsInput.setText(config.get("gerrit_token_as", ""))
+
+    def saveSettings(self):
+        """Save the settings entered in the input fields."""
+        config_file = os.path.join(os.path.dirname(__file__), "user_config.json")
+        
+        # Load the existing configuration to preserve Azure OpenAI fields
+        if os.path.exists(config_file):
+            with open(config_file, "r", encoding="utf-8") as f:
+                config = json.load(f)
+        else:
+            config = {}
+
+        # Update only the fields that the user can modify
+        config.update({
+            "username": self.usernameInput.text(),
+            "jira_token": self.jiraTokenInput.text(),
+            "confluence_token": self.confluenceTokenInput.text(),
+            "gerrit_token_na": self.gerritTokenNaInput.text(),
+            "gerrit_token_eu": self.gerritTokenEuInput.text(),
+            "gerrit_token_as": self.gerritTokenAsInput.text(),
+        })
+
+        # Preserve Azure OpenAI fields if they already exist
+        azure_fields = ["azure_openai_endpoint", "azure_openai_api_key", "azure_openai_api_version", "azure_openai_chat_deployment"]
+        for field in azure_fields:
+            if field not in config:
+                config[field] = ""  # Add default value if missing
+
+        try:
+            with open(config_file, "w", encoding="utf-8") as f:
+                json.dump(config, f, indent=4)
+
+            # Reload the updated configuration
+            self.parent().config = self.parent().load_config()
+
+            QtWidgets.QMessageBox.information(self, "Success", "Settings saved successfully!")
+        except Exception as e:
+            QtWidgets.QMessageBox.critical(self, "Error", f"Failed to save settings: {e}")
 
 if __name__ == "__main__":
     app = QtWidgets.QApplication(sys.argv)
