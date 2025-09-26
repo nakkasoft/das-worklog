@@ -5,6 +5,8 @@ import os
 import json
 from PyQt5 import QtWidgets, uic
 import worklog_extractor
+from PyQt5.QtCore import QThread, pyqtSignal
+from PyQt5.QtGui import QTextCursor  # Import QTextCursor from QtGui
 
 class MyApp(QtWidgets.QMainWindow):
     def __init__(self):
@@ -98,7 +100,7 @@ class MyApp(QtWidgets.QMainWindow):
         if not self.config:
             QtWidgets.QMessageBox.critical(self, "오류", "설정이 로드되지 않았습니다.")
             return
-            
+
         try:
             username = self.config["username"]
             jira_token = self.config["jira_token"]
@@ -108,44 +110,47 @@ class MyApp(QtWidgets.QMainWindow):
                 "EU": self.config["gerrit_token_eu"],
                 "AS": self.config["gerrit_token_as"]
             }
-            
-            print(f"사용자: {username}")
-            print("설정 파일에서 토큰들이 로드되었습니다.")
 
-            rtn = self.fetch_all_worklog_data(username, jira_token, confluence_token, gerrit_tokens)
-            print(rtn)
-            
+            # Create and start the worker thread
+            self.worker = Worker(username, jira_token, confluence_token, gerrit_tokens)
+            self.worker.log_signal.connect(self.updateLogs)  # Connect the log signal to updateLogs
+            self.worker.data_signal.connect(self.processFetchedData)  # Connect the data signal to processFetchedData
+            self.worker.start()
+
         except KeyError as e:
             QtWidgets.QMessageBox.critical(
-                self, "설정 오류", 
+                self, "설정 오류",
                 f"user_config.json에 필요한 설정이 없습니다: {e}"
             )
-            return
         except Exception as e:
             QtWidgets.QMessageBox.critical(
-                self, "오류", 
-                f"데이터 수집 중 오류가 발생했습니다: {e}"
+                self, "오류",
+                f"작업 중 오류가 발생했습니다: {e}"
             )
             return
 
-        # Define the directory where the .md file should exist
-        worklog_directory = os.path.dirname(os.path.abspath(__file__))
-        
 
-        # Find the first valid .md file in the directory
-        md_file = None
-        for file in os.listdir(worklog_directory):
-            if file.lower().endswith('.md'):
-                md_file = os.path.join(worklog_directory, file)
-                break
+    def processFetchedData(self, data):
+        """Process the fetched data and generate OpenAI completion."""
+        try:
+            username = self.config["username"]
 
-        # Check if a valid .md file was found
-        if md_file:
-            try:
+            # Define the directory where the .md file should exist
+            worklog_directory = os.path.dirname(os.path.abspath(__file__))
+
+            # Find the first valid .md file in the directory
+            md_file = None
+            for file in os.listdir(worklog_directory):
+                if file.lower().endswith('.md'):
+                    md_file = os.path.join(worklog_directory, file)
+                    break
+
+            # Check if a valid .md file was found
+            if md_file:
                 with open(md_file, 'r', encoding='utf-8') as file:
                     md_content = file.read()
-                print("Contents of the .md file:")
-                print(md_content)
+                self.updateLogs("Contents of the .md file:")
+                self.updateLogs(md_content)
 
                 # Azure OpenAI(Chat Completions) 호출
                 completion = self.client.chat.completions.create(
@@ -157,14 +162,14 @@ class MyApp(QtWidgets.QMainWindow):
                                 "다음 내용을 요약해줘.\n"
                                 f"USERNAME: {username}\n"
                                 f"WORKLOG DATA:\n"
-                                f"JIRA Activities: {rtn['jira_data']} items\n"
-                                f"JIRA Data: {rtn['jira_data']}\n\n"
-                                f"CONFLUENCE Activities: {rtn['confluence_data']} items\n"
-                                f"CONFLUENCE Data: {rtn['confluence_data']}\n\n"
-                                f"GERRIT Reviews: {rtn['gerrit_reviews']} items\n"
-                                f"GERRIT Reviews Data: {rtn['gerrit_reviews']}\n\n"
-                                f"GERRIT Comments: {rtn['gerrit_comments']} items\n"
-                                f"GERRIT Comments Data: {rtn['gerrit_comments']}\n\n"
+                                f"JIRA Activities: {len(data['jira_data'])} items\n"
+                                f"JIRA Data: {data['jira_data']}\n\n"
+                                f"CONFLUENCE Activities: {len(data['confluence_data'])} items\n"
+                                f"CONFLUENCE Data: {data['confluence_data']}\n\n"
+                                f"GERRIT Reviews: {len(data['gerrit_reviews'])} items\n"
+                                f"GERRIT Reviews Data: {data['gerrit_reviews']}\n\n"
+                                f"GERRIT Comments: {len(data['gerrit_comments'])} items\n"
+                                f"GERRIT Comments Data: {data['gerrit_comments']}\n\n"
                                 f"File Content:\n{md_content}"
                             ),
                         },
@@ -173,18 +178,23 @@ class MyApp(QtWidgets.QMainWindow):
                 )
 
                 message = completion.choices[0].message.content
-                print("GPT 응답:", message)
+                self.updateLogs("GPT 응답:")
+                self.updateLogs(message)
 
                 QtWidgets.QMessageBox.information(
                     self, "Submission Successful", f"Result: {message}"
                 )
-                print("Final Success: The message has been processed successfully.")
-            except Exception as e:
-                QtWidgets.QMessageBox.critical(self, "Error", f"An error occurred: {e}")
-        else:
-            QtWidgets.QMessageBox.warning(
-                self, "No .md File Found", "No valid .md file found in the WorklogApplication directory."
-            )
+            else:
+                QtWidgets.QMessageBox.warning(
+                    self, "No .md File Found", "No valid .md file found in the WorklogApplication directory."
+                )
+        except Exception as e:
+            QtWidgets.QMessageBox.critical(self, "Error", f"An error occurred: {e}")
+
+    def updateLogs(self, message):
+        """Update the logs in lineEdit_5."""
+        self.lineEdit_5.append(message)
+        self.lineEdit_5.moveCursor(QTextCursor.End)  # Auto-scroll to the end
 
     def closeApp(self):
         self.close()
@@ -287,6 +297,47 @@ class SettingsDialog(QtWidgets.QDialog):
             QtWidgets.QMessageBox.information(self, "Success", "Settings saved successfully!")
         except Exception as e:
             QtWidgets.QMessageBox.critical(self, "Error", f"Failed to save settings: {e}")
+
+class Worker(QThread):
+    log_signal = pyqtSignal(str)  # Signal to send log messages to the main thread
+    data_signal = pyqtSignal(dict)  # Signal to send fetched data to the main thread
+
+    def __init__(self, username, jira_token, confluence_token, gerrit_tokens, parent=None):
+        super(Worker, self).__init__(parent)
+        self.username = username
+        self.jira_token = jira_token
+        self.confluence_token = confluence_token
+        self.gerrit_tokens = gerrit_tokens
+
+    def run(self):
+        self.log_signal.emit(f"사용자: {self.username}")
+        self.log_signal.emit("설정 파일에서 토큰들이 로드되었습니다.\n")
+
+        try:
+            # Fetch data
+            self.log_signal.emit("JIRA 데이터 수집 중...")
+            jira_data = worklog_extractor.collect_jira_data(self.username, self.jira_token)
+            self.log_signal.emit(f"JIRA 데이터 수집 완료: {len(jira_data)}개 항목\n")
+
+            self.log_signal.emit("Confluence 데이터 수집 중...")
+            confluence_data = worklog_extractor.collect_confluence_data(self.username, self.confluence_token)
+            self.log_signal.emit(f"Confluence 데이터 수집 완료: {len(confluence_data)}개 항목\n")
+
+            self.log_signal.emit("Gerrit 데이터 수집 중...")
+            gerrit_reviews, gerrit_comments = worklog_extractor.collect_gerrit_data(self.username, self.gerrit_tokens)
+            self.log_signal.emit(f"Gerrit 데이터 수집 완료: 리뷰 {len(gerrit_reviews)}개, 댓글 {len(gerrit_comments)}개\n")
+
+            self.log_signal.emit("=== 모든 데이터 수집 완료 ===")
+
+            # Emit the fetched data
+            self.data_signal.emit({
+                "jira_data": jira_data,
+                "confluence_data": confluence_data,
+                "gerrit_reviews": gerrit_reviews,
+                "gerrit_comments": gerrit_comments
+            })
+        except Exception as e:
+            self.log_signal.emit(f"오류 발생: {e}")
 
 if __name__ == "__main__":
     app = QtWidgets.QApplication(sys.argv)
