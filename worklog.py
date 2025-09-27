@@ -75,6 +75,9 @@ class MyApp(QtWidgets.QMainWindow):
         self.settings_dialog.exec_()
 
     def submitText(self):
+        # Clear the logs when Generate button is pressed
+        self.clearLogs()
+
         # 설정 파일에서 값들 읽어오기
         if not self.config:
             QtWidgets.QMessageBox.critical(self, "오류", "설정이 로드되지 않았습니다.")
@@ -108,6 +111,9 @@ class MyApp(QtWidgets.QMainWindow):
             )
             return
 
+    def clearLogs(self):
+        """Clear the logs in lineEdit_5."""
+        self.lineEdit_5.clear()
 
     def processFetchedData(self, data):
         """Process the fetched data and generate OpenAI completion."""
