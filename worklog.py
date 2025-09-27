@@ -1,10 +1,9 @@
 import sys
-# Exaone openai 라이브러리 제거 후 Azure OpenAI 클라이언트 사용
-from openai import AzureOpenAI
 import os
 import json
 from PyQt5 import QtWidgets, uic
 import worklog_extractor
+import llm_processor
 from PyQt5.QtCore import QThread, pyqtSignal
 from PyQt5.QtGui import QTextCursor  # Import QTextCursor from QtGui
 
@@ -22,26 +21,6 @@ class MyApp(QtWidgets.QMainWindow):
         self.config = self.load_config()
         if not self.config:
             return  # 설정 로드 실패시 초기화 중단
-
-        # Azure OpenAI 설정
-        try:
-            self.client = AzureOpenAI(
-                azure_endpoint=self.config["azure_openai_endpoint"],
-                api_key=self.config["azure_openai_api_key"],
-                api_version=self.config["azure_openai_api_version"],
-            )
-        except KeyError as e:
-            QtWidgets.QMessageBox.critical(
-                self, "설정 오류", 
-                f"user_config.json 파일에 필수 Azure OpenAI 설정이 누락되었습니다: {e}"
-            )
-            return
-        except Exception as e:
-            QtWidgets.QMessageBox.critical(
-                self, "연결 오류", 
-                f"Azure OpenAI 클라이언트 생성 실패: {e}"
-            )
-            return
 
     def load_config(self):
         """사용자 설정 파일을 로드합니다."""
@@ -134,60 +113,39 @@ class MyApp(QtWidgets.QMainWindow):
         """Process the fetched data and generate OpenAI completion."""
         try:
             username = self.config["username"]
-
-            # Define the directory where the .md file should exist
             worklog_directory = os.path.dirname(os.path.abspath(__file__))
 
-            # Find the first valid .md file in the directory
-            md_file = None
-            for file in os.listdir(worklog_directory):
-                if file.lower().endswith('.md'):
-                    md_file = os.path.join(worklog_directory, file)
-                    break
+            # LLMProcessor 생성
+            processor = llm_processor.LLMProcessor(self.config)
+            
+            # 워크로그 데이터와 MD 파일을 함께 처리
+            result = processor.process_worklog_with_md_file(
+                username=username,
+                worklog_data=data,
+                directory_path=worklog_directory
+            )
 
-            # Check if a valid .md file was found
-            if md_file:
-                with open(md_file, 'r', encoding='utf-8') as file:
-                    md_content = file.read()
-                self.updateLogs("Contents of the .md file:")
-                self.updateLogs(md_content)
-
-                # Azure OpenAI(Chat Completions) 호출
-                completion = self.client.chat.completions.create(
-                    model=self.config["azure_openai_chat_deployment"],
-                    messages=[
-                        {
-                            "role": "user",
-                            "content": (
-                                "다음 내용을 요약해줘.\n"
-                                f"USERNAME: {username}\n"
-                                f"WORKLOG DATA:\n"
-                                f"JIRA Activities: {len(data['jira_data'])} items\n"
-                                f"JIRA Data: {data['jira_data']}\n\n"
-                                f"CONFLUENCE Activities: {len(data['confluence_data'])} items\n"
-                                f"CONFLUENCE Data: {data['confluence_data']}\n\n"
-                                f"GERRIT Reviews: {len(data['gerrit_reviews'])} items\n"
-                                f"GERRIT Reviews Data: {data['gerrit_reviews']}\n\n"
-                                f"GERRIT Comments: {len(data['gerrit_comments'])} items\n"
-                                f"GERRIT Comments Data: {data['gerrit_comments']}\n\n"
-                                f"File Content:\n{md_content}"
-                            ),
-                        },
-                    ],
-                    max_completion_tokens=10000,
-                )
-
-                message = completion.choices[0].message.content
+            if result['success']:
+                # MD 파일 내용이 있으면 로그에 출력
+                if result['md_content']:
+                    self.updateLogs("Contents of the .md file:")
+                    self.updateLogs(result['md_content'])
+                
+                # GPT 응답 로그에 출력
                 self.updateLogs("GPT 응답:")
-                self.updateLogs(message)
+                self.updateLogs(result['summary'])
 
                 QtWidgets.QMessageBox.information(
-                    self, "Submission Successful", f"Result: {message}"
+                    self, "Submission Successful", f"Result: {result['summary']}"
                 )
             else:
-                QtWidgets.QMessageBox.warning(
-                    self, "No .md File Found", "No valid .md file found in the WorklogApplication directory."
+                # 처리 실패
+                error_msg = result['error'] or "알 수 없는 오류가 발생했습니다."
+                self.updateLogs(f"처리 실패: {error_msg}")
+                QtWidgets.QMessageBox.critical(
+                    self, "Processing Failed", f"워크로그 처리 중 오류가 발생했습니다:\n{error_msg}"
                 )
+                
         except Exception as e:
             QtWidgets.QMessageBox.critical(self, "Error", f"An error occurred: {e}")
 
