@@ -22,7 +22,7 @@ class LLMProcessor:
     
     def find_md_file(self, directory_path):
         """
-        디렉토리에서 첫 번째 .md 파일을 찾기
+        디렉토리에서 첫 번째 .md 파일을 찾기 (readme.md 제외)
         
         Args:
             directory_path (str): 검색할 디렉토리 경로
@@ -32,7 +32,7 @@ class LLMProcessor:
         """
         try:
             for file in os.listdir(directory_path):
-                if file.lower().endswith('.md'):
+                if file.lower().endswith('.md') and file.lower() != 'readme.md':
                     return os.path.join(directory_path, file)
             return None
         except Exception as e:
