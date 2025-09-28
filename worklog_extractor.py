@@ -46,6 +46,55 @@ def iso_to_dt(s):
         except:
             return None
 
+def extract_text_from_adf(adf_content):
+    """
+    Atlassian Document Format(ADF)에서 텍스트를 추출
+    
+    Args:
+        adf_content (dict): ADF 형식의 콘텐츠
+        
+    Returns:
+        str: 추출된 텍스트
+    """
+    if not adf_content or not isinstance(adf_content, dict):
+        return ""
+    
+    def extract_text_recursive(node):
+        """ADF 노드에서 재귀적으로 텍스트 추출"""
+        text_parts = []
+        
+        if isinstance(node, dict):
+            # 텍스트 노드인 경우
+            if node.get("type") == "text":
+                text_parts.append(node.get("text", ""))
+            
+            # 다른 노드 타입들 처리
+            elif node.get("type") in ["paragraph", "heading", "bulletList", "orderedList", "listItem"]:
+                if "content" in node:
+                    for child in node["content"]:
+                        text_parts.append(extract_text_recursive(child))
+            
+            # hardBreak는 줄바꿈으로 처리
+            elif node.get("type") == "hardBreak":
+                text_parts.append("\n")
+                
+        elif isinstance(node, list):
+            for item in node:
+                text_parts.append(extract_text_recursive(item))
+        
+        return " ".join(text_parts)
+    
+    try:
+        # ADF의 최상위 content에서 텍스트 추출
+        if "content" in adf_content:
+            extracted = extract_text_recursive(adf_content["content"])
+            return extracted.strip()
+        else:
+            return str(adf_content).strip()
+    except Exception as e:
+        # ADF 파싱 실패시 원본을 문자열로 반환
+        return str(adf_content)[:500]  # 길이 제한
+
 # =============================================================================
 # JIRA 데이터 수집 함수
 # =============================================================================
@@ -77,7 +126,7 @@ def collect_jira_data(username, token):
         
         params = {
             "jql": jql,
-            "fields": "key,summary,updated,status,assignee,reporter,created",
+            "fields": "key,summary,updated,status,assignee,reporter,created,description",
             "maxResults": 500
         }
         
@@ -92,11 +141,21 @@ def collect_jira_data(username, token):
             created_dt = iso_to_dt(issue["fields"]["created"])
             
             if updated_dt and updated_dt >= SINCE:
+                # description 필드 안전하게 처리
+                description = ""
+                if issue["fields"].get("description"):
+                    if isinstance(issue["fields"]["description"], str):
+                        description = issue["fields"]["description"]
+                    elif isinstance(issue["fields"]["description"], dict):
+                        # ADF(Atlassian Document Format) 형식인 경우 텍스트 추출
+                        description = extract_text_from_adf(issue["fields"]["description"])
+                
                 activities.append({
                     "source": "jira",
                     "type": "issue_activity",
                     "issue_key": issue["key"],
                     "summary": issue["fields"]["summary"],
+                    "description": description,
                     "status": issue["fields"]["status"]["name"],
                     "assignee": issue["fields"].get("assignee", {}).get("displayName", ""),
                     "reporter": issue["fields"].get("reporter", {}).get("displayName", ""),
@@ -381,13 +440,19 @@ def process_activity_data(jira_data, confluence_data, gerrit_reviews, gerrit_com
     
     # Jira 활동 변환
     for activity in jira_data:
+        # description이 길면 일부만 표시
+        description_preview = activity.get("description", "")
+        if len(description_preview) > 100:
+            description_preview = description_preview[:100] + "..."
+        
         all_activities.append({
             "timestamp": activity["updated"],
             "source": "JIRA",
             "type": "이슈 활동",
             "reference": activity["issue_key"],
             "description": f"[{activity['status']}] {activity['summary']}",
-            "content": activity["url"],
+            "content": description_preview if description_preview else activity["url"],
+            "full_description": activity.get("description", ""),  # 전체 설명 보관
             "raw_data": activity
         })
     
@@ -556,7 +621,7 @@ def main():
     
     # 통합 활동 타임라인 CSV
     write_csv("integrated_activity_timeline.csv",
-              ["timestamp", "source", "type", "reference", "description", "content"],
+              ["timestamp", "source", "type", "reference", "description", "content", "full_description"],
               integrated_activities)
     
     print(f"\n🎉 완료! 모든 데이터가 수집 및 가공되었습니다.")

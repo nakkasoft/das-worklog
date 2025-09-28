@@ -117,43 +117,41 @@ class MyApp(QtWidgets.QMainWindow):
 
     def processFetchedData(self, data):
         """Process the fetched data and generate OpenAI completion."""
+        self.updateLogs("주간 보고 작성중...")
+        
         try:
             username = self.config["username"]
             worklog_directory = os.path.dirname(os.path.abspath(__file__))
 
-            # LLMProcessor 생성
-            processor = llm_processor.LLMProcessor(self.config)
+            # AI 처리를 별도 스레드에서 실행
+            self.ai_worker = AIWorker(self.config, username, data, worklog_directory)
+            self.ai_worker.log_signal.connect(self.updateLogs)
+            self.ai_worker.result_signal.connect(self.handleAIResult)
+            self.ai_worker.error_signal.connect(self.handleAIError)
+            self.ai_worker.start()
             
-            # 워크로그 데이터와 MD 파일을 함께 처리
-            result = processor.process_worklog_with_md_file(
-                username=username,
-                worklog_data=data,
-                directory_path=worklog_directory
-            )
-
-            if result['success']:
-                # MD 파일 내용이 있으면 로그에 출력
-                if result['md_content']:
-                    self.updateLogs("Contents of the .md file:")
-                    self.updateLogs(result['md_content'])
-                
-                # GPT 응답 로그에 출력
-                self.updateLogs("GPT 응답:")
-                self.updateLogs(result['summary'])
-
-                QtWidgets.QMessageBox.information(
-                    self, "Submission Successful", f"Result: {result['summary']}"
-                )
-            else:
-                # 처리 실패
-                error_msg = result['error'] or "알 수 없는 오류가 발생했습니다."
-                self.updateLogs(f"처리 실패: {error_msg}")
-                QtWidgets.QMessageBox.critical(
-                    self, "Processing Failed", f"워크로그 처리 중 오류가 발생했습니다:\n{error_msg}"
-                )
-                
         except Exception as e:
             QtWidgets.QMessageBox.critical(self, "Error", f"An error occurred: {e}")
+
+    def handleAIResult(self, result):
+        """AI 처리 결과를 처리합니다 (메인 스레드에서 실행)."""
+        if result['md_content']:
+            self.updateLogs("Contents of the .md file:")
+            self.updateLogs(result['md_content'])
+        
+        self.updateLogs("GPT 응답:")
+        self.updateLogs(result['summary'])
+
+        QtWidgets.QMessageBox.information(
+            self, "Submission Successful", f"Result: {result['summary']}"
+        )
+
+    def handleAIError(self, error_msg):
+        """AI 처리 오류를 처리합니다 (메인 스레드에서 실행)."""
+        self.updateLogs(f"처리 실패: {error_msg}")
+        QtWidgets.QMessageBox.critical(
+            self, "Processing Failed", f"워크로그 처리 중 오류가 발생했습니다:\n{error_msg}"
+        )
 
     def updateLogs(self, message):
         """Update the logs in lineEdit_5."""
@@ -302,6 +300,43 @@ class Worker(QThread):
             })
         except Exception as e:
             self.log_signal.emit(f"오류 발생: {e}")
+
+
+class AIWorker(QThread):
+    log_signal = pyqtSignal(str)  # Signal to send log messages to the main thread
+    result_signal = pyqtSignal(dict)  # Signal to send AI processing result
+    error_signal = pyqtSignal(str)  # Signal to send error messages
+
+    def __init__(self, config, username, worklog_data, directory_path, parent=None):
+        super(AIWorker, self).__init__(parent)
+        self.config = config
+        self.username = username
+        self.worklog_data = worklog_data
+        self.directory_path = directory_path
+
+    def run(self):
+        try:
+            self.log_signal.emit("AI 처리를 시작합니다...")
+            
+            # LLMProcessor 생성
+            processor = llm_processor.LLMProcessor(self.config)
+            
+            # 워크로그 데이터와 MD 파일을 함께 처리
+            result = processor.process_worklog_with_md_file(
+                username=self.username,
+                worklog_data=self.worklog_data,
+                directory_path=self.directory_path
+            )
+
+            if result['success']:
+                self.log_signal.emit("AI 처리 완료!")
+                self.result_signal.emit(result)
+            else:
+                error_msg = result['error'] or "알 수 없는 오류가 발생했습니다."
+                self.error_signal.emit(error_msg)
+                
+        except Exception as e:
+            self.error_signal.emit(str(e))
 
 if __name__ == "__main__":
     app = QtWidgets.QApplication(sys.argv)
