@@ -2,10 +2,30 @@ import sys
 import os
 import json
 from PyQt5 import QtWidgets, uic
+from PyQt5.QtCore import QThread, pyqtSignal, Qt
+from PyQt5.QtGui import QTextCursor, QMovie
 import worklog_extractor
 import llm_processor
-from PyQt5.QtCore import QThread, pyqtSignal
-from PyQt5.QtGui import QTextCursor  # Import QTextCursor from QtGui
+
+class LoadingAnimationThread(QThread):
+    """Thread to control the loading animation."""
+    start_signal = pyqtSignal()  # Signal to start the animation
+    stop_signal = pyqtSignal()  # Signal to stop the animation
+
+    def __init__(self, parent=None):
+        super(LoadingAnimationThread, self).__init__(parent)
+        self.running = True  # Control flag for the animation loop
+
+    def run(self):
+        """Run the loading animation."""
+        self.start_signal.emit()  # Notify to start the animation
+        while self.running:
+            self.msleep(100)  # Keep the thread alive while the animation runs
+
+    def stop(self):
+        """Stop the loading animation."""
+        self.running = False
+        self.stop_signal.emit()  # Notify to stop the animation
 
 class MyApp(QtWidgets.QMainWindow):
     def __init__(self):
@@ -21,6 +41,27 @@ class MyApp(QtWidgets.QMainWindow):
         self.config = self.load_config()
         if not self.config:
             return  # 설정 로드 실패시 초기화 중단
+        
+        # Add a QLabel to display the loading animation
+        self.loading_label = QtWidgets.QLabel(self)
+        self.loading_label.setAlignment(Qt.AlignCenter)
+
+        # Dynamically calculate the center of lineEdit_5
+        line_edit_geometry = self.lineEdit_5.geometry()
+        line_edit_center_x = line_edit_geometry.x() + line_edit_geometry.width() // 2
+        line_edit_center_y = line_edit_geometry.y() + line_edit_geometry.height() // 2
+
+        # Set the geometry of the loading_label to be centered on lineEdit_5
+        self.loading_label.setGeometry(
+            line_edit_center_x + 50, line_edit_center_y - 100, 200, 200  # Adjust size as needed
+        )
+        self.loading_label.setStyleSheet("background-color: rgba(255, 255, 255, 200);")
+        self.loading_label.setVisible(False)
+        self.movie = QMovie("Loading.gif")  # Path to the loading GIF
+        self.loading_label.setMovie(self.movie)
+
+        self.loading_thread = None  # Placeholder for the loading animation thread
+
 
     def load_config(self):
         """사용자 설정 파일을 로드합니다."""
@@ -97,6 +138,8 @@ class MyApp(QtWidgets.QMainWindow):
             self.worker = Worker(username, jira_token, confluence_token, gerrit_tokens)
             self.worker.log_signal.connect(self.updateLogs)  # Connect the log signal to updateLogs
             self.worker.data_signal.connect(self.processFetchedData)  # Connect the data signal to processFetchedData
+            self.worker.start_animation_signal.connect(self.startLoadingAnimation)  # Start animation
+            self.worker.stop_animation_signal.connect(self.stopLoadingAnimation)  # Stop animation
             self.worker.start()
 
         except KeyError as e:
@@ -110,6 +153,16 @@ class MyApp(QtWidgets.QMainWindow):
                 f"작업 중 오류가 발생했습니다: {e}"
             )
             return
+    
+    def startLoadingAnimation(self):
+        """Start the loading animation."""
+        self.loading_label.setVisible(True)
+        self.movie.start()
+
+    def stopLoadingAnimation(self):
+        """Stop the loading animation."""
+        self.movie.stop()
+        self.loading_label.setVisible(False)
 
     def clearLogs(self):
         """Clear the logs in lineEdit_5."""
@@ -128,6 +181,8 @@ class MyApp(QtWidgets.QMainWindow):
             self.ai_worker.log_signal.connect(self.updateLogs)
             self.ai_worker.result_signal.connect(self.handleAIResult)
             self.ai_worker.error_signal.connect(self.handleAIError)
+            self.ai_worker.start_animation_signal.connect(self.startLoadingAnimation)  # Start animation
+            self.ai_worker.stop_animation_signal.connect(self.stopLoadingAnimation)  # Stop animation
             self.ai_worker.start()
             
         except Exception as e:
@@ -263,6 +318,8 @@ class SettingsDialog(QtWidgets.QDialog):
 class Worker(QThread):
     log_signal = pyqtSignal(str)  # Signal to send log messages to the main thread
     data_signal = pyqtSignal(dict)  # Signal to send fetched data to the main thread
+    start_animation_signal = pyqtSignal()  # Signal to start the loading animation
+    stop_animation_signal = pyqtSignal()  # Signal to stop the loading animation
 
     def __init__(self, username, jira_token, confluence_token, gerrit_tokens, parent=None):
         super(Worker, self).__init__(parent)
@@ -277,18 +334,24 @@ class Worker(QThread):
 
         try:
             # Fetch data
+            self.start_animation_signal.emit()
             self.log_signal.emit("JIRA 데이터 수집 중...")
             jira_data = worklog_extractor.collect_jira_data(self.username, self.jira_token)
+            self.stop_animation_signal.emit()
             self.log_signal.emit(f"JIRA 데이터 수집 완료: {len(jira_data)}개 항목\n")
 
+            self.start_animation_signal.emit()
             self.log_signal.emit("Confluence 데이터 수집 중...")
             confluence_data = worklog_extractor.collect_confluence_data(self.username, self.confluence_token)
+            self.stop_animation_signal.emit()
             self.log_signal.emit(f"Confluence 데이터 수집 완료: {len(confluence_data)}개 항목\n")
 
+            self.start_animation_signal.emit()
             self.log_signal.emit("Gerrit 데이터 수집 중...")
             gerrit_reviews, gerrit_comments = worklog_extractor.collect_gerrit_data(self.username, self.gerrit_tokens)
+            self.stop_animation_signal.emit()
             self.log_signal.emit(f"Gerrit 데이터 수집 완료: 리뷰 {len(gerrit_reviews)}개, 댓글 {len(gerrit_comments)}개\n")
-
+            
             self.log_signal.emit("=== 모든 데이터 수집 완료 ===")
 
             # Emit the fetched data
@@ -299,13 +362,15 @@ class Worker(QThread):
                 "gerrit_comments": gerrit_comments
             })
         except Exception as e:
+            self.stop_animation_signal.emit()
             self.log_signal.emit(f"오류 발생: {e}")
-
 
 class AIWorker(QThread):
     log_signal = pyqtSignal(str)  # Signal to send log messages to the main thread
     result_signal = pyqtSignal(dict)  # Signal to send AI processing result
     error_signal = pyqtSignal(str)  # Signal to send error messages
+    start_animation_signal = pyqtSignal()  # Signal to start the loading animation
+    stop_animation_signal = pyqtSignal()  # Signal to stop the loading animation
 
     def __init__(self, config, username, worklog_data, directory_path, parent=None):
         super(AIWorker, self).__init__(parent)
@@ -316,7 +381,8 @@ class AIWorker(QThread):
 
     def run(self):
         try:
-            self.log_signal.emit("AI 처리를 시작합니다...")
+            self.start_animation_signal.emit()  # Start the loading animation
+            self.log_signal.emit("AI 처리를 시작합니다...")  # Log the start of AI processing
             
             # LLMProcessor 생성
             processor = llm_processor.LLMProcessor(self.config)
@@ -328,15 +394,17 @@ class AIWorker(QThread):
                 directory_path=self.directory_path
             )
 
+            self.stop_animation_signal.emit()  # Stop the loading animation
             if result['success']:
-                self.log_signal.emit("AI 처리 완료!")
-                self.result_signal.emit(result)
+                self.log_signal.emit("AI 처리 완료!")  # Log success
+                self.result_signal.emit(result)  # Emit the result
             else:
                 error_msg = result['error'] or "알 수 없는 오류가 발생했습니다."
-                self.error_signal.emit(error_msg)
+                self.error_signal.emit(error_msg)  # Emit the error message
                 
         except Exception as e:
-            self.error_signal.emit(str(e))
+            self.stop_animation_signal.emit()  # Ensure the animation stops on error
+            self.error_signal.emit(str(e))  # Emit the exception message
 
 if __name__ == "__main__":
     app = QtWidgets.QApplication(sys.argv)
