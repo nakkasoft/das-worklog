@@ -6,35 +6,75 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>400</width>
-    <height>500</height>
+    <width>450</width>
+    <height>750</height>
    </rect>
   </property>
   <property name="windowTitle">
    <string>Settings</string>
   </property>
   <widget class="QWidget" name="centralwidget">
+   <!-- Background -->
+   <widget class="QLabel" name="background">
+    <property name="geometry">
+     <rect>
+      <x>0</x>
+      <y>0</y>
+      <width>450</width>
+      <height>750</height>
+     </rect>
+    </property>
+    <property name="styleSheet">
+     <string notr="true">
+       background: qlineargradient(spread:pad, x1:0, y1:0, x2:1, y2:1, stop:0 rgba(34, 193, 195, 255), stop:1 rgba(253, 187, 45, 255));
+     </string>
+    </property>
+    <property name="text">
+     <string/>
+    </property>
+   </widget>
+
+   <!-- Title -->
    <widget class="QLabel" name="label">
     <property name="geometry">
      <rect>
       <x>20</x>
-      <y>10</y>
-      <width>360</width>
-      <height>30</height>
+      <y>20</y>
+      <width>410</width>
+      <height>40</height>
      </rect>
     </property>
+    <property name="font">
+     <font>
+      <family>Arial</family>
+      <pointsize>18</pointsize>
+      <weight>75</weight>
+      <bold>true</bold>
+     </font>
+    </property>
+    <property name="styleSheet">
+     <string notr="true">color: white;</string>
+    </property>
     <property name="text">
-     <string>Enter your credentials below:</string>
+     <string>Enter Your Credentials Below</string>
+    </property>
+    <property name="alignment">
+     <set>Qt::AlignCenter</set>
     </property>
    </widget>
+
+   <!-- Username -->
    <widget class="QLabel" name="usernameLabel">
     <property name="geometry">
      <rect>
       <x>20</x>
-      <y>40</y>
-      <width>360</width>
+      <y>80</y>
+      <width>410</width>
       <height>20</height>
      </rect>
+    </property>
+    <property name="styleSheet">
+     <string notr="true">color: white;</string>
     </property>
     <property name="text">
      <string>Username:</string>
@@ -44,23 +84,40 @@
     <property name="geometry">
      <rect>
       <x>20</x>
-      <y>60</y>
-      <width>360</width>
+      <y>100</y>
+      <width>410</width>
       <height>30</height>
      </rect>
     </property>
+    <property name="styleSheet">
+     <string notr="true">
+       QLineEdit {
+         border: 2px solid #1e90ff;
+         border-radius: 10px;
+         background-color: rgb(255, 255, 255);
+         padding: 5px;
+         font-size: 12px;
+         color: #333;
+       }
+     </string>
+    </property>
     <property name="placeholderText">
-     <string>Username</string>
+     <string>Enter your username</string>
     </property>
    </widget>
+
+   <!-- JIRA Token -->
    <widget class="QLabel" name="jiraTokenLabel">
     <property name="geometry">
      <rect>
       <x>20</x>
-      <y>100</y>
-      <width>360</width>
+      <y>150</y>
+      <width>410</width>
       <height>20</height>
      </rect>
+    </property>
+    <property name="styleSheet">
+     <string notr="true">color: white;</string>
     </property>
     <property name="text">
      <string>JIRA Token:</string>
@@ -70,23 +127,40 @@
     <property name="geometry">
      <rect>
       <x>20</x>
-      <y>120</y>
-      <width>360</width>
+      <y>170</y>
+      <width>410</width>
       <height>30</height>
      </rect>
     </property>
+    <property name="styleSheet">
+     <string notr="true">
+       QLineEdit {
+         border: 2px solid #1e90ff;
+         border-radius: 10px;
+         background-color: rgb(255, 255, 255);
+         padding: 5px;
+         font-size: 12px;
+         color: #333;
+       }
+     </string>
+    </property>
     <property name="placeholderText">
-     <string>JIRA Token</string>
+     <string>Enter your JIRA token</string>
     </property>
    </widget>
+
+   <!-- Confluence Token -->
    <widget class="QLabel" name="confluenceTokenLabel">
     <property name="geometry">
      <rect>
       <x>20</x>
-      <y>160</y>
-      <width>360</width>
+      <y>220</y>
+      <width>410</width>
       <height>20</height>
      </rect>
+    </property>
+    <property name="styleSheet">
+     <string notr="true">color: white;</string>
     </property>
     <property name="text">
      <string>Confluence Token:</string>
@@ -96,23 +170,40 @@
     <property name="geometry">
      <rect>
       <x>20</x>
-      <y>180</y>
-      <width>360</width>
+      <y>240</y>
+      <width>410</width>
       <height>30</height>
      </rect>
     </property>
+    <property name="styleSheet">
+     <string notr="true">
+       QLineEdit {
+         border: 2px solid #1e90ff;
+         border-radius: 10px;
+         background-color: rgb(255, 255, 255);
+         padding: 5px;
+         font-size: 12px;
+         color: #333;
+       }
+     </string>
+    </property>
     <property name="placeholderText">
-     <string>Confluence Token</string>
+     <string>Enter your Confluence token</string>
     </property>
    </widget>
+
+   <!-- Gerrit Token (NA) -->
    <widget class="QLabel" name="gerritTokenNaLabel">
     <property name="geometry">
      <rect>
       <x>20</x>
-      <y>220</y>
-      <width>360</width>
+      <y>290</y>
+      <width>410</width>
       <height>20</height>
      </rect>
+    </property>
+    <property name="styleSheet">
+     <string notr="true">color: white;</string>
     </property>
     <property name="text">
      <string>Gerrit Token (NA):</string>
@@ -122,23 +213,40 @@
     <property name="geometry">
      <rect>
       <x>20</x>
-      <y>240</y>
-      <width>360</width>
+      <y>310</y>
+      <width>410</width>
       <height>30</height>
      </rect>
     </property>
+    <property name="styleSheet">
+     <string notr="true">
+       QLineEdit {
+         border: 2px solid #1e90ff;
+         border-radius: 10px;
+         background-color: rgb(255, 255, 255);
+         padding: 5px;
+         font-size: 12px;
+         color: #333;
+       }
+     </string>
+    </property>
     <property name="placeholderText">
-     <string>Gerrit Token (NA)</string>
+     <string>Enter Gerrit Token (NA)</string>
     </property>
    </widget>
+
+   <!-- Gerrit Token (EU) -->
    <widget class="QLabel" name="gerritTokenEuLabel">
     <property name="geometry">
      <rect>
       <x>20</x>
-      <y>280</y>
-      <width>360</width>
+      <y>360</y>
+      <width>410</width>
       <height>20</height>
      </rect>
+    </property>
+    <property name="styleSheet">
+     <string notr="true">color: white;</string>
     </property>
     <property name="text">
      <string>Gerrit Token (EU):</string>
@@ -148,23 +256,40 @@
     <property name="geometry">
      <rect>
       <x>20</x>
-      <y>300</y>
-      <width>360</width>
+      <y>380</y>
+      <width>410</width>
       <height>30</height>
      </rect>
     </property>
+    <property name="styleSheet">
+     <string notr="true">
+       QLineEdit {
+         border: 2px solid #1e90ff;
+         border-radius: 10px;
+         background-color: rgb(255, 255, 255);
+         padding: 5px;
+         font-size: 12px;
+         color: #333;
+       }
+     </string>
+    </property>
     <property name="placeholderText">
-     <string>Gerrit Token (EU)</string>
+     <string>Enter Gerrit Token (EU)</string>
     </property>
    </widget>
+
+   <!-- Gerrit Token (AS) -->
    <widget class="QLabel" name="gerritTokenAsLabel">
     <property name="geometry">
      <rect>
       <x>20</x>
-      <y>340</y>
-      <width>360</width>
+      <y>430</y>
+      <width>410</width>
       <height>20</height>
      </rect>
+    </property>
+    <property name="styleSheet">
+     <string notr="true">color: white;</string>
     </property>
     <property name="text">
      <string>Gerrit Token (AS):</string>
@@ -174,36 +299,86 @@
     <property name="geometry">
      <rect>
       <x>20</x>
-      <y>360</y>
-      <width>360</width>
+      <y>450</y>
+      <width>410</width>
       <height>30</height>
      </rect>
     </property>
+    <property name="styleSheet">
+     <string notr="true">
+       QLineEdit {
+         border: 2px solid #1e90ff;
+         border-radius: 10px;
+         background-color: rgb(255, 255, 255);
+         padding: 5px;
+         font-size: 12px;
+         color: #333;
+       }
+     </string>
+    </property>
     <property name="placeholderText">
-     <string>Gerrit Token (AS)</string>
+     <string>Enter Gerrit Token (AS)</string>
     </property>
    </widget>
+
+   <!-- Save Button -->
    <widget class="QPushButton" name="saveSettingsButton">
     <property name="geometry">
      <rect>
       <x>20</x>
-      <y>420</y>
-      <width>100</width>
-      <height>30</height>
+      <y>600</y>
+      <width>180</width>
+      <height>40</height>
      </rect>
+    </property>
+    <property name="styleSheet">
+     <string notr="true">
+       QPushButton {
+         border: 2px solid #006400;
+         background-color: #32cd32;
+         border-radius: 15px;
+         color: white;
+         font-weight: bold;
+       }
+       QPushButton:hover {
+         background-color: #228b22;
+       }
+       QPushButton:pressed {
+         background-color: #006400;
+       }
+     </string>
     </property>
     <property name="text">
      <string>Save</string>
     </property>
    </widget>
+
+   <!-- Close Button -->
    <widget class="QPushButton" name="closeSettingsButton">
     <property name="geometry">
      <rect>
-      <x>280</x>
-      <y>420</y>
-      <width>100</width>
-      <height>30</height>
+      <x>250</x>
+      <y>600</y>
+      <width>180</width>
+      <height>40</height>
      </rect>
+    </property>
+    <property name="styleSheet">
+     <string notr="true">
+       QPushButton {
+         border: 2px solid #8b0000;
+         background-color: #ff4500;
+         border-radius: 15px;
+         color: white;
+         font-weight: bold;
+       }
+       QPushButton:hover {
+         background-color: #dc143c;
+       }
+       QPushButton:pressed {
+         background-color: #8b0000;
+       }
+     </string>
     </property>
     <property name="text">
      <string>Close</string>
