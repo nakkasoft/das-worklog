@@ -52,8 +52,13 @@ class MyApp(QtWidgets.QMainWindow):
         line_edit_center_y = line_edit_geometry.y() + line_edit_geometry.height() // 2
 
         # Set the geometry of the loading_label to be centered on lineEdit_5
+        loading_label_width = 100  # Width of the loading animation
+        loading_label_height = 100  # Height of the loading animation
         self.loading_label.setGeometry(
-            line_edit_center_x + 50, line_edit_center_y - 100, 200, 200  # Adjust size as needed
+            line_edit_center_x - loading_label_width // 2,
+            line_edit_center_y - loading_label_height // 2,
+            loading_label_width,
+            loading_label_height
         )
         self.loading_label.setStyleSheet("background-color: rgba(255, 255, 255, 200);")
         self.loading_label.setVisible(False)
@@ -411,3 +416,4 @@ if __name__ == "__main__":
     window = MyApp()
     window.show()
     sys.exit(app.exec_())
+
