@@ -140,6 +140,9 @@
     <property name="horizontalScrollBarPolicy">
      <enum>Qt::ScrollBarAsNeeded</enum>
     </property>
+    <property name="readOnly">
+    <bool>true</bool>
+    </property>
     <property name="text" stdset="0">
      <string/>
     </property>
@@ -299,3 +302,4 @@
  <resources/>
  <connections/>
 </ui>
+
