@@ -223,7 +223,7 @@ if __name__ == "__main__":
         result = processor.process_worklog_with_md_file(
             username="test_user",
             worklog_data=sample_data,
-            directory_path="."
+            directory_path="./templates"
         )
         
         if result['success']:
