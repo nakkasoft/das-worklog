@@ -6,12 +6,12 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>787</width>
-    <height>642</height>
+    <width>850</width>
+    <height>698</height>
    </rect>
   </property>
   <property name="windowTitle">
-   <string>Worklog Bot</string>
+   <string>Worklog Application</string>
   </property>
   <widget class="QWidget" name="centralwidget">
    <widget class="QLabel" name="background">
@@ -19,12 +19,14 @@
      <rect>
       <x>0</x>
       <y>0</y>
-      <width>791</width>
-      <height>641</height>
+      <width>850</width>
+      <height>700</height>
      </rect>
     </property>
     <property name="styleSheet">
-     <string notr="true">background-color: rgb(21, 96, 130);</string>
+     <string notr="true">
+       background: qlineargradient(spread:pad, x1:0, y1:0, x2:1, y2:1, stop:0 rgba(34, 193, 195, 255), stop:1 rgba(253, 187, 45, 255));
+     </string>
     </property>
     <property name="text">
      <string/>
@@ -35,8 +37,8 @@
      <rect>
       <x>20</x>
       <y>20</y>
-      <width>100</width>
-      <height>100</height>
+      <width>120</width>
+      <height>120</height>
      </rect>
     </property>
     <property name="pixmap">
@@ -49,15 +51,16 @@
    <widget class="QLabel" name="label">
     <property name="geometry">
      <rect>
-      <x>140</x>
-      <y>40</y>
-      <width>500</width>
-      <height>50</height>
+      <x>160</x>
+      <y>30</y>
+      <width>530</width>
+      <height>60</height>
      </rect>
     </property>
     <property name="font">
      <font>
-      <pointsize>22</pointsize>
+      <family>Arial</family>
+      <pointsize>26</pointsize>
       <weight>75</weight>
       <bold>true</bold>
      </font>
@@ -66,29 +69,114 @@
      <string notr="true">color: white;</string>
     </property>
     <property name="text">
-     <string>Worklog Bot</string>
+     <string>Worklog Application</string>
     </property>
     <property name="alignment">
      <set>Qt::AlignCenter</set>
     </property>
    </widget>
+   <widget class="QTextEdit" name="lineEdit_5">
+    <property name="geometry">
+     <rect>
+      <x>70</x>
+      <y>99</y>
+      <width>710</width>
+      <height>461</height>
+     </rect>
+    </property>
+    <property name="styleSheet">
+     <string notr="true">
+       QTextEdit {
+         border: 2px solid #1e90ff;
+         border-radius: 10px;
+         background-color: rgb(255, 255, 255);
+         padding: 10px;
+         font-size: 12px;
+         color: #333;
+       }
+       QScrollBar:vertical {
+         border: none;
+         background: #f0f0f0;
+         width: 12px;
+         margin: 2px 0 2px 0;
+         border-radius: 6px;
+       }
+       QScrollBar::handle:vertical {
+         background: #1e90ff;
+         border-radius: 6px;
+         min-height: 20px;
+       }
+       QScrollBar::handle:vertical:hover {
+         background: #4682b4;
+       }
+       QScrollBar::add-line:vertical, QScrollBar::sub-line:vertical {
+         background: none;
+         height: 0px;
+       }
+       QScrollBar:horizontal {
+         border: none;
+         background: #f0f0f0;
+         height: 12px;
+         margin: 0 2px 0 2px;
+         border-radius: 6px;
+       }
+       QScrollBar::handle:horizontal {
+         background: #1e90ff;
+         border-radius: 6px;
+         min-width: 20px;
+       }
+       QScrollBar::handle:horizontal:hover {
+         background: #4682b4;
+       }
+       QScrollBar::add-line:horizontal, QScrollBar::sub-line:horizontal {
+         background: none;
+         width: 0px;
+       }
+     </string>
+    </property>
+    <property name="verticalScrollBarPolicy">
+     <enum>Qt::ScrollBarAsNeeded</enum>
+    </property>
+    <property name="horizontalScrollBarPolicy">
+     <enum>Qt::ScrollBarAsNeeded</enum>
+    </property>
+    <property name="text" stdset="0">
+     <string/>
+    </property>
+   </widget>
    <widget class="QPushButton" name="pushButton">
     <property name="geometry">
      <rect>
-      <x>290</x>
-      <y>500</y>
-      <width>201</width>
-      <height>41</height>
+      <x>320</x>
+      <y>580</y>
+      <width>210</width>
+      <height>50</height>
      </rect>
     </property>
     <property name="font">
      <font>
-      <family>LG스마트체2.0 Regular</family>
-      <pointsize>18</pointsize>
+      <family>Arial</family>
+      <pointsize>16</pointsize>
+      <weight>75</weight>
+      <bold>true</bold>
      </font>
     </property>
     <property name="styleSheet">
-     <string notr="true">border: 2px solid black; background-color: rgb(0, 200, 0); border-radius: 10px; color: white;</string>
+     <string notr="true">
+       QPushButton {
+         border: 2px solid #006400;
+         background-color: #32cd32;
+         border-radius: 15px;
+         color: white;
+         font-weight: bold;
+       }
+       QPushButton:hover {
+         background-color: #228b22;
+       }
+       QPushButton:pressed {
+         background-color: #006400;
+       }
+     </string>
     </property>
     <property name="text">
      <string>Generate</string>
@@ -97,64 +185,102 @@
    <widget class="QPushButton" name="closeButton">
     <property name="geometry">
      <rect>
-      <x>510</x>
-      <y>500</y>
-      <width>211</width>
-      <height>41</height>
+      <x>550</x>
+      <y>580</y>
+      <width>210</width>
+      <height>50</height>
      </rect>
     </property>
     <property name="font">
      <font>
-      <family>LG스마트체2.0 Regular</family>
+      <family>Arial</family>
       <pointsize>14</pointsize>
+      <weight>75</weight>
+      <bold>true</bold>
      </font>
     </property>
     <property name="styleSheet">
-     <string notr="true">border: 2px solid black; background-color: rgb(255, 69, 58); border-radius: 10px; color: white;</string>
+     <string notr="true">
+       QPushButton {
+         border: 2px solid #8b0000;
+         background-color: #ff4500;
+         border-radius: 15px;
+         color: white;
+         font-weight: bold;
+       }
+       QPushButton:hover {
+         background-color: #dc143c;
+       }
+       QPushButton:pressed {
+         background-color: #8b0000;
+       }
+     </string>
     </property>
     <property name="text">
      <string>Close</string>
     </property>
    </widget>
-   <widget class="QTextEdit" name="lineEdit_5">
-    <property name="geometry">
-     <rect>
-      <x>70</x>
-      <y>100</y>
-      <width>651</width>
-      <height>381</height>
-     </rect>
-    </property>
-    <property name="styleSheet">
-     <string notr="true">border: 2px solid black; background-color: rgb(255, 255, 255);</string>
-    </property>
-    <property name="text">
-     <string/>
-    </property>
-    <property name="placeholderText">
-     <string/>
-    </property>
-   </widget>
    <widget class="QPushButton" name="pushButton_3">
     <property name="geometry">
      <rect>
-      <x>70</x>
-      <y>500</y>
-      <width>201</width>
-      <height>41</height>
+      <x>90</x>
+      <y>580</y>
+      <width>210</width>
+      <height>50</height>
      </rect>
     </property>
     <property name="font">
      <font>
-      <family>LG스마트체2.0 Regular</family>
-      <pointsize>18</pointsize>
+      <family>Arial</family>
+      <pointsize>16</pointsize>
+      <weight>75</weight>
+      <bold>true</bold>
      </font>
     </property>
     <property name="styleSheet">
-     <string notr="true">border: 2px solid black; background-color: rgb(131, 203, 235); border-radius: 10px; color: white;</string>
+     <string notr="true">
+       QPushButton {
+         border: 2px solid #4682b4;
+         background-color: #87ceeb;
+         border-radius: 15px;
+         color: white;
+         font-weight: bold;
+       }
+       QPushButton:hover {
+         background-color: #5f9ea0;
+       }
+       QPushButton:pressed {
+         background-color: #4682b4;
+       }
+     </string>
     </property>
     <property name="text">
-     <string>Setting</string>
+     <string>Settings</string>
+    </property>
+   </widget>
+   <widget class="QLabel" name="footer">
+    <property name="geometry">
+     <rect>
+      <x>0</x>
+      <y>650</y>
+      <width>850</width>
+      <height>30</height>
+     </rect>
+    </property>
+    <property name="styleSheet">
+     <string notr="true">
+       background-color: rgba(0, 0, 0, 0.8);
+       color: white;
+       font-size: 12px;
+       font-family: Arial;
+       text-align: center;
+     </string>
+    </property>
+    <property name="text">
+     <string>© 2025 Worklog Application. All rights reserved.</string>
+    </property>
+    <property name="alignment">
+     <set>Qt::AlignCenter</set>
     </property>
    </widget>
   </widget>
@@ -163,7 +289,7 @@
     <rect>
      <x>0</x>
      <y>0</y>
-     <width>787</width>
+     <width>850</width>
      <height>21</height>
     </rect>
    </property>
