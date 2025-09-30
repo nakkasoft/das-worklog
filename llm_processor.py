@@ -100,7 +100,14 @@ class LLMProcessor:
             str: 구성된 프롬프트
         """
         prompt_parts = [
-            "다음 내용을 요약해줘.\n",
+            "당신은 주간 보고를 아주 잘 정리하는 주간 보고 마스터 입니다. \n\
+            다음 내용을 바탕으로 주간 보고 작성해 주세요. \n\
+            주간 보고 양식은 첨부 하는 md_contect 이며, 이 양식에 맞게 요약해주세요.\n\
+            참고 할 점은 다음과 같습니다. \n\
+            Issue 현황은 내가 수정한 Issue 만 포함 됩니다. 내가 Resolve 처리를 했거나, 나에게 Assign된 Issue들만 Count 해주세요. \n\
+            주요 처리 Issue나 주요 잔여 Issue는 Issue의 제목을 넣어 주고, Issue의 내용을 간략하게 설명해 주세요. 1~2줄 정도가 좋을 것 같습니다. \n\
+            그리고 내가 해당 Issue 에 대해서 수행한 작업들을 Comment Base로 작성해 주세요. \n\
+            기술 관련 Issue 라면 어느 정도 기술관련 내용이 들어 가면 좋을 것 같습니다.\n"
             f"USERNAME: {username}\n",
             f"WORKLOG DATA:\n",
             f"JIRA Activities: {len(worklog_data['jira_data'])} items\n",
