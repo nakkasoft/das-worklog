@@ -123,6 +123,7 @@ def collect_jira_data(username, token):
         
         # 최근 1일간의 활동 검색
         jql = "(updated >= -1d) AND (assignee = currentUser() OR reporter = currentUser() OR comment ~ currentUser() OR worklogAuthor = currentUser())"
+        #jql = "Key = CLUSTWORK-16128"
         
         params = {
             "jql": jql,
@@ -132,42 +133,122 @@ def collect_jira_data(username, token):
         
         r = requests.get(f"{JIRA_BASE}/rest/api/2/search", headers=headers, params=params)
         r.raise_for_status()
-        data = r.json()
+        
+        # JSON 응답 검증
+        try:
+            data = r.json()
+        except json.JSONDecodeError:
+            print(f"❌ Jira API 응답이 올바른 JSON 형식이 아닙니다: {r.text[:200]}")
+            return []
+        
+        # 응답 구조 검증
+        if not isinstance(data, dict):
+            print(f"❌ Jira API 응답이 딕셔너리가 아닙니다: {type(data)}")
+            return []
+        
+        # issues 필드 검증
+        if "issues" not in data:
+            print(f"❌ Jira API 응답에 'issues' 필드가 없습니다. 사용 가능한 키: {list(data.keys())}")
+            return []
+        
         issues = data.get("issues", [])
+        
+        # issues가 리스트인지 확인
+        if not isinstance(issues, list):
+            print(f"❌ 'issues' 필드가 리스트가 아닙니다: {type(issues)}")
+            return []
+        
+        print(f"✅ Jira에서 {len(issues)}개의 이슈를 가져왔습니다.")
         
         activities = []
         for issue in issues:
-            updated_dt = iso_to_dt(issue["fields"]["updated"])
-            created_dt = iso_to_dt(issue["fields"]["created"])
-            
-            if updated_dt and updated_dt >= SINCE:
-                # description 필드 안전하게 처리
-                description = ""
-                if issue["fields"].get("description"):
-                    if isinstance(issue["fields"]["description"], str):
-                        description = issue["fields"]["description"]
-                    elif isinstance(issue["fields"]["description"], dict):
-                        # ADF(Atlassian Document Format) 형식인 경우 텍스트 추출
-                        description = extract_text_from_adf(issue["fields"]["description"])
+            try:
+                # 기본 필드들 안전하게 가져오기
+                fields = issue.get("fields", {})
+                if not fields:
+                    continue
                 
-                activities.append({
-                    "source": "jira",
-                    "type": "issue_activity",
-                    "issue_key": issue["key"],
-                    "summary": issue["fields"]["summary"],
-                    "description": description,
-                    "status": issue["fields"]["status"]["name"],
-                    "assignee": issue["fields"].get("assignee", {}).get("displayName", ""),
-                    "reporter": issue["fields"].get("reporter", {}).get("displayName", ""),
-                    "created": issue["fields"]["created"],
-                    "updated": issue["fields"]["updated"],
-                    "url": f"{JIRA_BASE}/browse/{issue['key']}"
-                })
+                # 시간 필드 처리
+                updated_str = fields.get("updated")
+                created_str = fields.get("created")
+                
+                if not updated_str:
+                    continue
+                    
+                updated_dt = iso_to_dt(updated_str)
+                created_dt = iso_to_dt(created_str) if created_str else None
+                
+                if updated_dt and updated_dt >= SINCE:
+                    # description 필드 안전하게 처리
+                    description = ""
+                    description_field = fields.get("description")
+                    if description_field:
+                        if isinstance(description_field, str):
+                            description = description_field
+                        elif isinstance(description_field, dict):
+                            # ADF(Atlassian Document Format) 형식인 경우 텍스트 추출
+                            description = extract_text_from_adf(description_field)
+                    
+                    # assignee 안전 처리
+                    assignee_info = fields.get("assignee")
+                    if assignee_info is None:
+                        assignee_name = "Unassigned"
+                    else:
+                        assignee_name = assignee_info.get("displayName", "Unknown") if isinstance(assignee_info, dict) else "Unknown"
+                    
+                    # reporter 안전 처리
+                    reporter_info = fields.get("reporter")
+                    if reporter_info is None:
+                        reporter_name = "Unknown"
+                    else:
+                        reporter_name = reporter_info.get("displayName", "Unknown") if isinstance(reporter_info, dict) else "Unknown"
+                    
+                    # status 필드 안전 처리
+                    status_info = fields.get("status")
+                    if status_info is None:
+                        status_name = "Unknown"
+                    else:
+                        status_name = status_info.get("name", "Unknown") if isinstance(status_info, dict) else "Unknown"
+                    
+                    # summary 필드 안전 처리
+                    summary = fields.get("summary", "No Summary")
+                    
+                    # issue key 안전 처리
+                    issue_key = issue.get("key", "Unknown")
+                    
+                    activities.append({
+                        "source": "jira",
+                        "type": "issue_activity",
+                        "issue_key": issue_key,
+                        "summary": summary,
+                        "description": description,
+                        "status": status_name,
+                        "assignee": assignee_name,
+                        "reporter": reporter_name,
+                        "created": created_str or "Unknown",
+                        "updated": updated_str,
+                        "url": f"{JIRA_BASE}/browse/{issue_key}"
+                    })
+                    
+            except Exception as e:
+                print(f"⚠️ 이슈 처리 중 오류 (키: {issue.get('key', 'Unknown')}): {e}")
+                continue
         
         return activities
         
+    except requests.exceptions.RequestException as e:
+        print(f"❌ Jira 네트워크 요청 오류: {e}")
+        return []
+    except json.JSONDecodeError as e:
+        print(f"❌ Jira JSON 디코딩 오류: {e}")
+        return []
+    except KeyError as e:
+        print(f"❌ Jira 응답에서 필수 필드 누락: {e}")
+        return []
     except Exception as e:
-        print(f"❌ Jira 데이터 수집 오류: {e}")
+        print(f"❌ Jira 데이터 수집 예상치 못한 오류: {e}")
+        import traceback
+        traceback.print_exc()
         return []
 
 # =============================================================================
