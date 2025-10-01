@@ -292,7 +292,7 @@
      </string>
     </property>
     <property name="text">
-     <string>© 2025 Worklog Application. All rights reserved.</string>
+     <string>© 2025 Worklog Application. All rights reserved to LG Electronics.</string>
     </property>
     <property name="alignment">
      <set>Qt::AlignCenter</set>
