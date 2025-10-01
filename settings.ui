@@ -38,7 +38,7 @@
     </property>
     <property name="styleSheet">
      <string notr="true">
-       background: qlineargradient(spread:pad, x1:0, y1:0, x2:1, y2:1, stop:0 rgba(34, 193, 195, 255), stop:1 rgba(253, 187, 45, 255));
+       background: qlineargradient(spread:pad, x1:0, y1:0, x2:1, y2:1, stop:0 rgba(63, 94, 251, 255), stop:1 rgba(252, 70, 107, 255));
      </string>
     </property>
     <property name="text">
