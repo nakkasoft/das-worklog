@@ -417,7 +417,7 @@
      </string>
     </property>
     <property name="text">
-     <string>Save</string>
+     <string>저장</string>
     </property>
    </widget>
 
@@ -457,7 +457,7 @@
      </string>
     </property>
     <property name="text">
-     <string>Close</string>
+     <string>종료</string>
     </property>
    </widget>
   </widget>
@@ -465,3 +465,4 @@
  <resources/>
  <connections/>
 </ui>
+
