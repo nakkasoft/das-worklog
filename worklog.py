@@ -121,12 +121,17 @@ class MyApp(QtWidgets.QMainWindow):
         self.settings_dialog.exec_()
 
     def submitText(self):
+
+        # Disable the Generate button to block further clicks
+        self.pushButton.setEnabled(False)
+
         # Clear the logs when Generate button is pressed
         self.clearLogs()
 
         # 설정 파일에서 값들 읽어오기
         if not self.config:
             QtWidgets.QMessageBox.critical(self, "오류", "설정이 로드되지 않았습니다.")
+            self.pushButton.setEnabled(True)  # Re-enable the button if there's an error
             return
 
         try:
@@ -157,8 +162,9 @@ class MyApp(QtWidgets.QMainWindow):
                 self, "오류",
                 f"작업 중 오류가 발생했습니다: {e}"
             )
+            self.pushButton.setEnabled(True)  # Re-enable the button if there's an error
             return
-    
+
     def startLoadingAnimation(self):
         """Start the loading animation."""
         self.loading_label.setVisible(True)
@@ -192,6 +198,7 @@ class MyApp(QtWidgets.QMainWindow):
             
         except Exception as e:
             QtWidgets.QMessageBox.critical(self, "Error", f"An error occurred: {e}")
+            self.pushButton.setEnabled(True) # Re-enable the button if there's an error
 
     def handleAIResult(self, result):
         """AI 처리 결과를 처리합니다 (메인 스레드에서 실행)."""
@@ -206,12 +213,18 @@ class MyApp(QtWidgets.QMainWindow):
             self, "Submission Successful", f"Result: {result['summary']}"
         )
 
+        # Re-enable the Generate button
+        self.pushButton.setEnabled(True)
+
     def handleAIError(self, error_msg):
         """AI 처리 오류를 처리합니다 (메인 스레드에서 실행)."""
         self.updateLogs(f"처리 실패: {error_msg}")
         QtWidgets.QMessageBox.critical(
             self, "Processing Failed", f"워크로그 처리 중 오류가 발생했습니다:\n{error_msg}"
         )
+
+        # Re-enable the Generate button
+        self.pushButton.setEnabled(True)
 
     def updateLogs(self, message):
         """Update the logs in lineEdit_5."""
