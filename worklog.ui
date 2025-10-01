@@ -194,7 +194,7 @@
      </string>
     </property>
     <property name="text">
-     <string>Generate</string>
+     <string>실행</string>
     </property>
    </widget>
    <widget class="QPushButton" name="closeButton">
@@ -232,7 +232,7 @@
      </string>
     </property>
     <property name="text">
-     <string>Close</string>
+     <string>종료</string>
     </property>
    </widget>
    <widget class="QPushButton" name="pushButton_3">
@@ -270,7 +270,7 @@
      </string>
     </property>
     <property name="text">
-     <string>Settings</string>
+     <string>설정</string>
     </property>
    </widget>
    <widget class="QLabel" name="footer">
@@ -333,7 +333,7 @@
      </string>
     </property>
     <property name="text">
-     <string>Style 1</string>
+     <string>간략</string>
     </property>
    </widget>
    <widget class="QPushButton" name="pushButton_5">
@@ -371,7 +371,7 @@
      </string>
     </property>
     <property name="text">
-     <string>Style 2</string>
+     <string>중간 간략</string>
     </property>
    </widget>
    <widget class="QPushButton" name="pushButton_6">
@@ -409,7 +409,7 @@
      </string>
     </property>
     <property name="text">
-     <string>Style 3</string>
+     <string>상세</string>
     </property>
    </widget>
   </widget>
