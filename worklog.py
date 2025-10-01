@@ -209,10 +209,11 @@ class MyApp(QtWidgets.QMainWindow):
         self.updateLogs("GPT 응답:")
         self.updateLogs(result['summary'])
 
+        """
         QtWidgets.QMessageBox.information(
             self, "Submission Successful", f"Result: {result['summary']}"
         )
-
+        """
         # Re-enable the Generate button
         self.pushButton.setEnabled(True)
 
