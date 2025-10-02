@@ -22,7 +22,7 @@ class LLMProcessor:
     
     def find_md_file(self, directory_path):
         """
-        디렉토리에서 첫 번째 .md 파일을 찾기 (readme.md 제외)
+        디렉토리에서 주간 보고 템플릿 .md 파일을 찾기
         
         Args:
             directory_path (str): 검색할 디렉토리 경로
@@ -31,10 +31,40 @@ class LLMProcessor:
             str or None: 찾은 .md 파일의 전체 경로, 없으면 None
         """
         try:
-            for file in os.listdir(directory_path):
-                if file.lower().endswith('.md') and file.lower() != 'readme.md':
-                    return os.path.join(directory_path, file)
+            # 우선순위 파일들 (주간 보고 관련)
+            priority_files = [
+                'weekly_report_template.md',
+                'weekly_report.md',
+                'template.md'
+            ]
+            
+            # templates 디렉토리도 확인
+            templates_dir = os.path.join(directory_path, 'templates')
+            search_dirs = [directory_path]
+            if os.path.exists(templates_dir):
+                search_dirs.append(templates_dir)
+            
+            # 우선순위 파일부터 검색
+            for search_dir in search_dirs:
+                for priority_file in priority_files:
+                    file_path = os.path.join(search_dir, priority_file)
+                    if os.path.exists(file_path):
+                        print(f"✅ 주간 보고 템플릿 발견: {file_path}")
+                        return file_path
+            
+            # 우선순위 파일이 없으면 일반 .md 파일 검색 (readme.md 제외)
+            for search_dir in search_dirs:
+                if os.path.exists(search_dir):
+                    for file in os.listdir(search_dir):
+                        if (file.lower().endswith('.md') and 
+                            file.lower() not in ['readme.md', 'changelog.md', 'license.md']):
+                            file_path = os.path.join(search_dir, file)
+                            print(f"📄 MD 파일 발견: {file_path}")
+                            return file_path
+            
+            print("⚠️ 주간 보고 템플릿 MD 파일을 찾을 수 없습니다.")
             return None
+            
         except Exception as e:
             raise Exception(f"디렉토리 검색 중 오류 발생: {e}")
     
@@ -49,8 +79,30 @@ class LLMProcessor:
             str: 파일 내용
         """
         try:
+            print(f"📖 MD 파일 읽는 중: {md_file_path}")
+            
+            if not os.path.exists(md_file_path):
+                raise Exception(f"파일이 존재하지 않습니다: {md_file_path}")
+            
             with open(md_file_path, 'r', encoding='utf-8') as file:
-                return file.read()
+                content = file.read()
+                
+            if not content.strip():
+                print("⚠️ MD 파일이 비어있습니다.")
+                return ""
+            
+            print(f"✅ MD 파일 읽기 완료 ({len(content)} 문자)")
+            return content
+            
+        except UnicodeDecodeError:
+            # UTF-8로 읽기 실패시 다른 인코딩 시도
+            try:
+                with open(md_file_path, 'r', encoding='cp949') as file:
+                    content = file.read()
+                print(f"✅ MD 파일 읽기 완료 (CP949 인코딩, {len(content)} 문자)")
+                return content
+            except Exception as e:
+                raise Exception(f"파일 읽기 중 인코딩 오류: {e}")
         except Exception as e:
             raise Exception(f"파일 읽기 중 오류 발생: {e}")
     
@@ -99,29 +151,45 @@ class LLMProcessor:
         Returns:
             str: 구성된 프롬프트
         """
+        # 기본 시스템 프롬프트
+        system_prompt = """당신은 주간 보고를 아주 잘 정리하는 주간 보고 마스터입니다. 
+        다음 내용을 바탕으로 주간 보고를 작성해 주세요.
+
+        주간 보고 작성 가이드라인:
+        1. Issue 현황은 내가 수정한 Issue만 포함됩니다. 내가 Resolve 처리를 했거나, 나에게 Assign된 Issue들만 Count 해주세요.
+        2. 주요 처리 Issue나 주요 잔여 Issue는 Issue의 제목을 넣어 주고, Issue의 내용을 간략하게 설명해 주세요. 1~2줄 정도가 좋을 것 같습니다.
+        3. 내가 해당 Issue에 대해서 수행한 작업들을 Comment Base로 작성해 주세요.
+        4. 기술 관련 Issue라면 어느 정도 기술관련 내용이 들어가면 좋을 것 같습니다.
+
+        """
+        
+        # MD 파일 양식이 있으면 추가
+        if md_content:
+            system_prompt += f"""
+            === 주간 보고 양식 (다음 양식에 맞게 작성해주세요) ===
+            {md_content}
+
+            === 양식 끝 ===
+
+            위 양식에 맞춰서 아래 워크로그 데이터를 정리해서 주간 보고서를 작성해주세요.
+            """
+        
+        # 워크로그 데이터 추가
         prompt_parts = [
-            "당신은 주간 보고를 아주 잘 정리하는 주간 보고 마스터 입니다. \n\
-            다음 내용을 바탕으로 주간 보고 작성해 주세요. \n\
-            주간 보고 양식은 첨부 하는 md_contect 이며, 이 양식에 맞게 요약해주세요.\n\
-            참고 할 점은 다음과 같습니다. \n\
-            Issue 현황은 내가 수정한 Issue 만 포함 됩니다. 내가 Resolve 처리를 했거나, 나에게 Assign된 Issue들만 Count 해주세요. \n\
-            주요 처리 Issue나 주요 잔여 Issue는 Issue의 제목을 넣어 주고, Issue의 내용을 간략하게 설명해 주세요. 1~2줄 정도가 좋을 것 같습니다. \n\
-            그리고 내가 해당 Issue 에 대해서 수행한 작업들을 Comment Base로 작성해 주세요. \n\
-            기술 관련 Issue 라면 어느 정도 기술관련 내용이 들어 가면 좋을 것 같습니다.\n"
-            f"USERNAME: {username}\n",
-            f"WORKLOG DATA:\n",
-            f"JIRA Activities: {len(worklog_data['jira_data'])} items\n",
-            f"JIRA Data: {worklog_data['jira_data']}\n\n",
-            f"CONFLUENCE Activities: {len(worklog_data['confluence_data'])} items\n",
-            f"CONFLUENCE Data: {worklog_data['confluence_data']}\n\n",
-            f"GERRIT Reviews: {len(worklog_data['gerrit_reviews'])} items\n",
-            f"GERRIT Reviews Data: {worklog_data['gerrit_reviews']}\n\n",
-            f"GERRIT Comments: {len(worklog_data['gerrit_comments'])} items\n",
-            f"GERRIT Comments Data: {worklog_data['gerrit_comments']}\n\n"
+            system_prompt,
+            f"\n=== 워크로그 데이터 ===\n",
+            f"사용자: {username}\n\n",
+            f"📋 JIRA 활동 데이터 ({len(worklog_data['jira_data'])}개 항목):\n",
+            f"{json.dumps(worklog_data['jira_data'], ensure_ascii=False, indent=2)}\n\n",
+            f"📝 CONFLUENCE 활동 데이터 ({len(worklog_data['confluence_data'])}개 항목):\n",
+            f"{json.dumps(worklog_data['confluence_data'], ensure_ascii=False, indent=2)}\n\n",
+            f"🔍 GERRIT 리뷰 데이터 ({len(worklog_data['gerrit_reviews'])}개 항목):\n",
+            f"{json.dumps(worklog_data['gerrit_reviews'], ensure_ascii=False, indent=2)}\n\n",
+            f"💬 GERRIT 댓글 데이터 ({len(worklog_data['gerrit_comments'])}개 항목):\n",
+            f"{json.dumps(worklog_data['gerrit_comments'], ensure_ascii=False, indent=2)}\n\n"
         ]
         
-        if md_content:
-            prompt_parts.append(f"File Content:\n{md_content}")
+        prompt_parts.append("위 데이터를 바탕으로 주간 보고서를 작성해주세요.")
         
         return "".join(prompt_parts)
     
@@ -146,28 +214,39 @@ class LLMProcessor:
         }
         
         try:
+            print(f"🔍 MD 파일 검색 시작: {directory_path}")
+            
             # MD 파일 찾기
             md_file = self.find_md_file(directory_path)
             
             if md_file:
+                print(f"📄 MD 파일 발견: {md_file}")
+                
                 # MD 파일 읽기
                 md_content = self.read_md_file(md_file)
                 result['md_file'] = md_file
                 result['md_content'] = md_content
                 
-                # LLM으로 요약 생성
+                print(f"✅ MD 템플릿이 있습니다. 템플릿 기반으로 주간 보고서를 생성합니다.")
+                print(f"📝 템플릿 내용 미리보기: {md_content[:200]}...")
+                
+                # LLM으로 요약 생성 (MD 템플릿 포함)
                 summary = self.generate_worklog_summary(username, worklog_data, md_content)
                 result['summary'] = summary
                 result['success'] = True
                 
             else:
+                print("⚠️ MD 템플릿을 찾을 수 없습니다. 기본 형식으로 주간 보고서를 생성합니다.")
+                
                 # MD 파일이 없어도 워크로그만으로 요약 생성
                 summary = self.generate_worklog_summary(username, worklog_data)
                 result['summary'] = summary
                 result['success'] = True
                 
         except Exception as e:
-            result['error'] = str(e)
+            error_msg = f"주간 보고서 생성 중 오류: {e}"
+            print(f"❌ {error_msg}")
+            result['error'] = error_msg
             
         return result
 
