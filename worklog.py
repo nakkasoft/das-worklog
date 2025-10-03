@@ -217,9 +217,19 @@ class MyApp(QtWidgets.QMainWindow):
                 self.updateLogs(f"  • [{issue_key}] {issue_summary}")
                 self.updateLogs(f"    {issue_url}")
             self.updateLogs("")
-        
+
         self.updateLogs("✅ 주간 보고서 생성 완료!")
-        self.updateLogs("📋 결과는 Jira 서브태스크에 업로드됩니다.")
+        
+        # Jira 서브태스크 URL 표시
+        if 'subtask_url' in result:
+            self.updateLogs("📋 생성된 Jira 서브태스크:")
+            self.updateLogs(f"  🔗 {result['subtask_url']}")
+        elif 'upload_error' in result:
+            self.updateLogs(f"❌ Jira 업로드 실패: {result['upload_error']}")
+        elif 'upload_info' in result:
+            self.updateLogs(f"⚠️ {result['upload_info']}")
+        else:
+            self.updateLogs("📋 결과는 Jira 서브태스크에 업로드됩니다.")
 
         # Re-enable the Generate button
         self.pushButton.setEnabled(True)
@@ -621,11 +631,17 @@ class AIWorker(QThread):
                         )
                         
                         if upload_result['success']:
-                            self.log_signal.emit(f"✅ Jira 업로드 완료: {upload_result.get('subtask_url', 'URL 정보 없음')}")
+                            subtask_url = upload_result.get('url', 'URL 정보 없음')  # 'url' 키 사용
+                            self.log_signal.emit(f"✅ Jira 업로드 완료: {subtask_url}")
+                            # 결과에 서브태스크 URL 정보 추가
+                            result['subtask_url'] = subtask_url
                         else:
-                            self.log_signal.emit(f"❌ Jira 업로드 실패: {upload_result.get('error', '알 수 없는 오류')}")
+                            error_msg = upload_result.get('error', '알 수 없는 오류')
+                            self.log_signal.emit(f"❌ Jira 업로드 실패: {error_msg}")
+                            result['upload_error'] = error_msg
                     else:
                         self.log_signal.emit("⚠️ user_config.json에 master_jira가 설정되지 않았습니다. Jira 업로드를 건너뜁니다.")
+                        result['upload_info'] = "master_jira 설정이 필요합니다."
                         
                 except Exception as e:
                     self.log_signal.emit(f"❌ Jira 업로드 중 오류: {e}")
