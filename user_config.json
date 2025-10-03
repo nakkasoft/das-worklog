@@ -8,5 +8,6 @@
   "confluence_token": "YOUR_CONFLUENCE_TOKEN",
   "gerrit_token_na": "YOUR_GERRIT_NA_TOKEN",
   "gerrit_token_eu": "YOUR_GERRIT_EU_TOKEN",
-  "gerrit_token_as": "YOUR_GERRIT_AS_TOKEN"
+  "gerrit_token_as": "YOUR_GERRIT_AS_TOKEN",
+  "master_jira": "CLUSTWORK-16153"  
 }
