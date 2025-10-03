@@ -189,6 +189,13 @@ class LLMProcessor:
             f"{json.dumps(worklog_data['gerrit_comments'], ensure_ascii=False, indent=2)}\n\n"
         ]
         
+        # 이메일 데이터 추가 (있는 경우)
+        if 'email_summaries' in worklog_data and worklog_data['email_summaries']:
+            prompt_parts.extend([
+                f"📧 발송 이메일 요약 데이터 ({len(worklog_data['email_summaries'])}개 항목):\n",
+                f"{json.dumps(worklog_data['email_summaries'], ensure_ascii=False, indent=2)}\n\n"
+            ])
+        
         prompt_parts.append("위 데이터를 바탕으로 주간 보고서를 작성해주세요.")
         
         return "".join(prompt_parts)

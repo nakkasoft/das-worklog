@@ -1,5 +1,8 @@
 # 사용자 개인 설정 파일 (API 키 포함)
 user_config.json
+outlook/*
+**/*.eml
+user*.json
 
 # Python 관련 파일들
 __pycache__/
@@ -112,6 +115,8 @@ worklog_result.md
 *.csv
 gerrit_*.csv
 integrated_activity_timeline.csv
+email_summaries.json
+email_*.json
 
 # 임시 파일
 *.tmp

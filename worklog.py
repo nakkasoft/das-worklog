@@ -6,6 +6,7 @@ from PyQt5.QtCore import QThread, pyqtSignal, Qt
 from PyQt5.QtGui import QTextCursor, QMovie
 import worklog_extractor
 import llm_processor
+import email_processor
 
 class LoadingAnimationThread(QThread):
     """Thread to control the loading animation."""
@@ -263,12 +264,24 @@ class MyApp(QtWidgets.QMainWindow):
         gerrit_reviews, gerrit_comments = worklog_extractor.collect_gerrit_data(username, gerrit_tokens)
         print(f"Gerrit 데이터 수집 완료: 리뷰 {len(gerrit_reviews)}개, 댓글 {len(gerrit_comments)}개")
         
+        # 이메일 데이터 수집 추가
+        print("이메일 데이터 수집 중...")
+        try:
+            email_proc = email_processor.create_email_processor()
+            email_summaries = email_proc.process_outlook_emails()
+            print(f"이메일 데이터 수집 완료: {len(email_summaries)}개 요약")
+        except Exception as e:
+            print(f"이메일 처리 중 오류: {e}")
+            email_summaries = []
+
+
         print("=== fetch_all_worklog_data 완료 ===")
         return {
             "jira_data": jira_data,
             "confluence_data": confluence_data,
             "gerrit_reviews": gerrit_reviews,
-            "gerrit_comments": gerrit_comments
+            "gerrit_comments": gerrit_comments,
+            "email_summaries": email_summaries
         }
 
 class SettingsDialog(QtWidgets.QDialog):
@@ -371,6 +384,20 @@ class Worker(QThread):
             self.stop_animation_signal.emit()
             self.log_signal.emit(f"Gerrit 데이터 수집 완료: 리뷰 {len(gerrit_reviews)}개, 댓글 {len(gerrit_comments)}개\n")
             
+            # 이메일 데이터 수집 추가
+            self.start_animation_signal.emit()
+            self.log_signal.emit("이메일 데이터 수집 중...")
+            try:
+                import email_processor
+                email_proc = email_processor.create_email_processor()
+                email_summaries = email_proc.process_outlook_emails()
+                self.stop_animation_signal.emit()
+                self.log_signal.emit(f"이메일 데이터 수집 완료: {len(email_summaries)}개 요약\n")
+            except Exception as e:
+                self.stop_animation_signal.emit()
+                self.log_signal.emit(f"이메일 처리 중 오류: {e}\n")
+                email_summaries = []
+            
             self.log_signal.emit("=== 모든 데이터 수집 완료 ===")
 
             # Emit the fetched data
@@ -378,7 +405,8 @@ class Worker(QThread):
                 "jira_data": jira_data,
                 "confluence_data": confluence_data,
                 "gerrit_reviews": gerrit_reviews,
-                "gerrit_comments": gerrit_comments
+                "gerrit_comments": gerrit_comments,
+                "email_summaries": email_summaries
             })
         except Exception as e:
             self.stop_animation_signal.emit()
