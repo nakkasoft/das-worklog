@@ -560,15 +560,11 @@ class AIWorker(QThread):
                         
                     if master_jira:
                         # JiraUploader 생성
-                        uploader = jira_uploader.JiraUploader(
-                            jira_token=config.get("jira_token", ""),
-                            username=self.username
-                        )
+                        uploader = jira_uploader.JiraUploader(config)
                         
                         # 결과물 업로드
                         upload_result = uploader.upload_worklog_result(
-                            master_issue_key=master_jira,
-                            result_data=result
+                            result.get('content', '주간 보고서 내용')
                         )
                         
                         if upload_result['success']:
