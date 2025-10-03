@@ -119,6 +119,9 @@ email_summaries.json
 email_*.json
 worklog_debug_*.json
 
+# log 폴더 전체 (결과물 저장)
+log/
+
 # 임시 파일
 *.tmp
 *.bak

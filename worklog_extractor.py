@@ -630,13 +630,22 @@ def generate_activity_summary(activities):
 # =============================================================================
 
 def write_csv(path, headers, rows):
-    """CSV 파일 작성 (UTF-8 BOM 포함)"""
-    with open(path, "w", newline="", encoding="utf-8-sig") as f:
+    """CSV 파일 작성 (UTF-8 BOM 포함) - log 폴더에 저장"""
+    # log 폴더 생성
+    log_dir = "./log"
+    if not os.path.exists(log_dir):
+        os.makedirs(log_dir)
+        print(f"📁 로그 폴더 생성: {log_dir}")
+    
+    # 파일 경로를 log 폴더로 설정
+    log_path = os.path.join(log_dir, os.path.basename(path))
+    
+    with open(log_path, "w", newline="", encoding="utf-8-sig") as f:
         writer = csv.DictWriter(f, fieldnames=headers)
         writer.writeheader()
         for r in rows:
             writer.writerow({h: r.get(h, "") for h in headers})
-    print(f"✓ {path} 작성 완료 ({len(rows)}개 행)")
+    print(f"✓ {log_path} 작성 완료 ({len(rows)}개 행)")
 
 # =============================================================================
 # 메인 실행 함수 (예제)

@@ -287,8 +287,15 @@ class MyApp(QtWidgets.QMainWindow):
         print("디버깅용 데이터 파일 저장 중...")
         try:
             from datetime import datetime
+            
+            # log 폴더 생성
+            log_dir = "./log"
+            if not os.path.exists(log_dir):
+                os.makedirs(log_dir)
+                print(f"📁 로그 폴더 생성: {log_dir}")
+            
             timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-            debug_filename = f"worklog_debug_{timestamp}.json"
+            debug_filename = os.path.join(log_dir, f"worklog_debug_{timestamp}.json")
             
             with open(debug_filename, 'w', encoding='utf-8') as f:
                 json.dump(all_worklog_data, f, ensure_ascii=False, indent=2)
@@ -433,8 +440,15 @@ class Worker(QThread):
             self.log_signal.emit("디버깅용 데이터 파일 저장 중...")
             try:
                 from datetime import datetime
+                
+                # log 폴더 생성
+                log_dir = "./log"
+                if not os.path.exists(log_dir):
+                    os.makedirs(log_dir)
+                    self.log_signal.emit(f"📁 로그 폴더 생성: {log_dir}")
+                
                 timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-                debug_filename = f"worklog_debug_{timestamp}.json"
+                debug_filename = os.path.join(log_dir, f"worklog_debug_{timestamp}.json")
                 
                 with open(debug_filename, 'w', encoding='utf-8') as f:
                     json.dump(all_worklog_data, f, ensure_ascii=False, indent=2)

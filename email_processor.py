@@ -379,13 +379,22 @@ class EmailProcessor:
             str: 저장된 파일 경로
         """
         try:
+            # log 폴더 생성
+            log_dir = "./log"
+            if not os.path.exists(log_dir):
+                os.makedirs(log_dir)
+                print(f"📁 로그 폴더 생성: {log_dir}")
+            
+            # 파일 경로를 log 폴더로 설정
+            output_path = os.path.join(log_dir, output_file)
+            
             # JSON 파일로 저장 (이미 요약된 형태이므로 그대로 저장)
-            with open(output_file, 'w', encoding='utf-8') as f:
+            with open(output_path, 'w', encoding='utf-8') as f:
                 json.dump(processed_summaries, f, ensure_ascii=False, indent=2)
             
-            print(f"💾 이메일 요약 저장 완료: {output_file}")
+            print(f"💾 이메일 요약 저장 완료: {output_path}")
             print(f"   - 저장된 요약 개수: {len(processed_summaries)}개")
-            return os.path.abspath(output_file)
+            return os.path.abspath(output_path)
             
         except Exception as e:
             raise Exception(f"이메일 요약 저장 중 오류: {e}")
