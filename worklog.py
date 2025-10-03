@@ -538,6 +538,51 @@ class AIWorker(QThread):
                 self.log_signal.emit(f"⚠️ 이메일 처리 중 오류: {e}")
                 # 이메일 처리 실패해도 계속 진행
             
+            # Jira 이슈 개별 요약 처리
+            self.log_signal.emit("🔍 Jira 이슈들을 개별적으로 LLM 요약 중...")
+            jira_summaries = []
+            
+            # Jira 데이터에서 상세 이슈 정보 추출
+            jira_issues = []
+            for data_type, data_list in self.worklog_data.items():
+                if data_type == 'jira_data' and isinstance(data_list, list):
+                    for item in data_list:
+                        if item.get('type') == 'detailed_issue':
+                            jira_issues.append(item)
+            
+            if jira_issues:
+                self.log_signal.emit(f"📋 총 {len(jira_issues)}개의 Jira 이슈를 개별 요약합니다...")
+                
+                for i, issue in enumerate(jira_issues, 1):
+                    try:
+                        issue_key = issue.get('issue_key', 'Unknown')
+                        self.log_signal.emit(f"[{i}/{len(jira_issues)}] {issue_key} 요약 중...")
+                        
+                        # 개별 이슈 요약
+                        summary_result = processor.summarize_jira_issue(issue)
+                        
+                        if summary_result['success']:
+                            jira_summaries.append({
+                                'issue_key': summary_result['issue_key'],
+                                'summary': summary_result['summary'],
+                                'original_data': issue
+                            })
+                            self.log_signal.emit(f"✅ {issue_key} 요약 완료")
+                        else:
+                            self.log_signal.emit(f"❌ {issue_key} 요약 실패: {summary_result['error']}")
+                            
+                    except Exception as e:
+                        self.log_signal.emit(f"❌ {issue.get('issue_key', 'Unknown')} 요약 중 오류: {e}")
+                
+                # 요약된 Jira 이슈들을 워크로그 데이터에 추가
+                enhanced_worklog_data = self.worklog_data.copy()
+                enhanced_worklog_data['jira_issue_summaries'] = jira_summaries
+                self.worklog_data = enhanced_worklog_data
+                
+                self.log_signal.emit(f"🎉 Jira 이슈 개별 요약 완료: {len(jira_summaries)}개 성공")
+            else:
+                self.log_signal.emit("📋 요약할 Jira 이슈가 없습니다.")
+            
             # 워크로그 데이터와 MD 파일을 함께 처리
             result = processor.process_worklog_with_md_file(
                 username=self.username,

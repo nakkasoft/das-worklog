@@ -99,6 +99,126 @@ def extract_text_from_adf(adf_content):
 # JIRA 데이터 수집 함수
 # =============================================================================
 
+def get_jira_issue_details(username, token, issue_key):
+    """
+    특정 Jira 이슈의 상세 정보와 댓글을 가져오기
+    
+    Args:
+        username (str): Jira 사용자명
+        token (str): Jira API 토큰
+        issue_key (str): Jira 이슈 키 (예: CLUSTWORK-16153)
+        
+    Returns:
+        dict: 이슈 상세 정보 (댓글 포함)
+    """
+    headers = {
+        "Accept": "application/json",
+        "Authorization": f"Bearer {token}"
+    }
+    
+    try:
+        # 이슈 기본 정보 가져오기
+        url = f"{JIRA_BASE}/rest/api/2/issue/{issue_key}"
+        params = {
+            "expand": "changelog,comments,worklog,attachments"
+        }
+        
+        response = requests.get(url, headers=headers, params=params)
+        response.raise_for_status()
+        issue_data = response.json()
+        
+        # 댓글 정보 추출
+        comments = []
+        if "comments" in issue_data.get("fields", {}):
+            for comment in issue_data["fields"]["comments"]["comments"]:
+                comment_info = {
+                    "author": comment.get("author", {}).get("displayName", "Unknown"),
+                    "created": comment.get("created", ""),
+                    "updated": comment.get("updated", ""),
+                    "body": comment.get("body", "")
+                }
+                # ADF 형태인 경우 텍스트 추출
+                if isinstance(comment_info["body"], dict):
+                    comment_info["body"] = extract_text_from_adf(comment_info["body"])
+                comments.append(comment_info)
+        
+        # 워크로그 정보 추출
+        worklogs = []
+        if "worklog" in issue_data.get("fields", {}):
+            for worklog in issue_data["fields"]["worklog"]["worklogs"]:
+                worklog_info = {
+                    "author": worklog.get("author", {}).get("displayName", "Unknown"),
+                    "created": worklog.get("created", ""),
+                    "updated": worklog.get("updated", ""),
+                    "timeSpent": worklog.get("timeSpent", ""),
+                    "comment": worklog.get("comment", "")
+                }
+                # ADF 형태인 경우 텍스트 추출
+                if isinstance(worklog_info["comment"], dict):
+                    worklog_info["comment"] = extract_text_from_adf(worklog_info["comment"])
+                worklogs.append(worklog_info)
+        
+        # 첨부파일 정보 추출
+        attachments = []
+        if "attachment" in issue_data.get("fields", {}):
+            for attachment in issue_data["fields"]["attachment"]:
+                attachments.append({
+                    "filename": attachment.get("filename", ""),
+                    "author": attachment.get("author", {}).get("displayName", "Unknown"),
+                    "created": attachment.get("created", ""),
+                    "size": attachment.get("size", 0)
+                })
+        
+        # 변경 이력 추출
+        changelog = []
+        if "changelog" in issue_data:
+            for history in issue_data["changelog"]["histories"]:
+                for item in history.get("items", []):
+                    changelog.append({
+                        "author": history.get("author", {}).get("displayName", "Unknown"),
+                        "created": history.get("created", ""),
+                        "field": item.get("field", ""),
+                        "fieldtype": item.get("fieldtype", ""),
+                        "from": item.get("fromString", ""),
+                        "to": item.get("toString", "")
+                    })
+        
+        # 통합 상세 정보 반환
+        fields = issue_data.get("fields", {})
+        
+        # description 필드 안전 처리
+        description = ""
+        description_field = fields.get("description")
+        if description_field:
+            if isinstance(description_field, str):
+                description = description_field
+            elif isinstance(description_field, dict):
+                description = extract_text_from_adf(description_field)
+        
+        detailed_issue = {
+            "key": issue_data.get("key", ""),
+            "summary": fields.get("summary", ""),
+            "description": description,
+            "status": fields.get("status", {}).get("name", "Unknown"),
+            "assignee": fields.get("assignee", {}).get("displayName", "Unassigned") if fields.get("assignee") else "Unassigned",
+            "reporter": fields.get("reporter", {}).get("displayName", "Unknown") if fields.get("reporter") else "Unknown",
+            "priority": fields.get("priority", {}).get("name", "Unknown") if fields.get("priority") else "Unknown",
+            "created": fields.get("created", ""),
+            "updated": fields.get("updated", ""),
+            "resolutiondate": fields.get("resolutiondate", ""),
+            "comments": comments,
+            "worklogs": worklogs,
+            "attachments": attachments,
+            "changelog": changelog,
+            "url": f"{JIRA_BASE}/browse/{issue_data.get('key', '')}"
+        }
+        
+        return detailed_issue
+        
+    except Exception as e:
+        print(f"❌ Jira 이슈 상세 정보 가져오기 실패 ({issue_key}): {e}")
+        return None
+
 def collect_jira_data(username, token, excluded_issues=None):
     """
     Jira 데이터 수집
@@ -196,56 +316,95 @@ def collect_jira_data(username, token, excluded_issues=None):
                 created_dt = iso_to_dt(created_str) if created_str else None
                 
                 if updated_dt and updated_dt >= SINCE:
-                    # description 필드 안전하게 처리
-                    description = ""
-                    description_field = fields.get("description")
-                    if description_field:
-                        if isinstance(description_field, str):
-                            description = description_field
-                        elif isinstance(description_field, dict):
-                            # ADF(Atlassian Document Format) 형식인 경우 텍스트 추출
-                            description = extract_text_from_adf(description_field)
+                    print(f"🔍 {issue_key} 상세 정보 수집 중...")
                     
-                    # assignee 안전 처리
-                    assignee_info = fields.get("assignee")
-                    if assignee_info is None:
-                        assignee_name = "Unassigned"
+                    # 이슈 상세 정보 가져오기 (댓글, 워크로그 등 포함)
+                    detailed_issue = get_jira_issue_details(username, token, issue_key)
+                    
+                    if detailed_issue:
+                        # 상세 정보가 있는 경우 이를 활동 목록에 추가
+                        activities.append({
+                            "source": "jira",
+                            "type": "detailed_issue",
+                            "issue_key": detailed_issue["key"],
+                            "summary": detailed_issue["summary"],
+                            "description": detailed_issue["description"],
+                            "status": detailed_issue["status"],
+                            "assignee": detailed_issue["assignee"],
+                            "reporter": detailed_issue["reporter"],
+                            "priority": detailed_issue["priority"],
+                            "created": detailed_issue["created"],
+                            "updated": detailed_issue["updated"],
+                            "resolutiondate": detailed_issue["resolutiondate"],
+                            "comments": detailed_issue["comments"],
+                            "worklogs": detailed_issue["worklogs"],
+                            "attachments": detailed_issue["attachments"],
+                            "changelog": detailed_issue["changelog"],
+                            "url": detailed_issue["url"],
+                            "comment_count": len(detailed_issue["comments"]),
+                            "worklog_count": len(detailed_issue["worklogs"]),
+                            "attachment_count": len(detailed_issue["attachments"])
+                        })
+                        
+                        print(f"✅ {issue_key} 상세 정보 수집 완료 (댓글: {len(detailed_issue['comments'])}개, 워크로그: {len(detailed_issue['worklogs'])}개)")
                     else:
-                        assignee_name = assignee_info.get("displayName", "Unknown") if isinstance(assignee_info, dict) else "Unknown"
-                    
-                    # reporter 안전 처리
-                    reporter_info = fields.get("reporter")
-                    if reporter_info is None:
-                        reporter_name = "Unknown"
-                    else:
-                        reporter_name = reporter_info.get("displayName", "Unknown") if isinstance(reporter_info, dict) else "Unknown"
-                    
-                    # status 필드 안전 처리
-                    status_info = fields.get("status")
-                    if status_info is None:
-                        status_name = "Unknown"
-                    else:
-                        status_name = status_info.get("name", "Unknown") if isinstance(status_info, dict) else "Unknown"
-                    
-                    # summary 필드 안전 처리
-                    summary = fields.get("summary", "No Summary")
-                    
-                    # issue key 안전 처리
-                    issue_key = issue.get("key", "Unknown")
-                    
-                    activities.append({
-                        "source": "jira",
-                        "type": "issue_activity",
-                        "issue_key": issue_key,
-                        "summary": summary,
-                        "description": description,
-                        "status": status_name,
-                        "assignee": assignee_name,
-                        "reporter": reporter_name,
-                        "created": created_str or "Unknown",
-                        "updated": updated_str,
-                        "url": f"{JIRA_BASE}/browse/{issue_key}"
-                    })
+                        # 상세 정보 가져오기 실패한 경우 기본 정보만 추가
+                        print(f"⚠️ {issue_key} 상세 정보 수집 실패, 기본 정보만 사용")
+                        
+                        # description 필드 안전하게 처리
+                        description = ""
+                        description_field = fields.get("description")
+                        if description_field:
+                            if isinstance(description_field, str):
+                                description = description_field
+                            elif isinstance(description_field, dict):
+                                # ADF(Atlassian Document Format) 형식인 경우 텍스트 추출
+                                description = extract_text_from_adf(description_field)
+                        
+                        # assignee 안전 처리
+                        assignee_info = fields.get("assignee")
+                        if assignee_info is None:
+                            assignee_name = "Unassigned"
+                        else:
+                            assignee_name = assignee_info.get("displayName", "Unknown") if isinstance(assignee_info, dict) else "Unknown"
+                        
+                        # reporter 안전 처리
+                        reporter_info = fields.get("reporter")
+                        if reporter_info is None:
+                            reporter_name = "Unknown"
+                        else:
+                            reporter_name = reporter_info.get("displayName", "Unknown") if isinstance(reporter_info, dict) else "Unknown"
+                        
+                        # status 필드 안전 처리
+                        status_info = fields.get("status")
+                        if status_info is None:
+                            status_name = "Unknown"
+                        else:
+                            status_name = status_info.get("name", "Unknown") if isinstance(status_info, dict) else "Unknown"
+                        
+                        # summary 필드 안전 처리
+                        summary = fields.get("summary", "No Summary")
+                        
+                        activities.append({
+                            "source": "jira",
+                            "type": "basic_issue",
+                            "issue_key": issue_key,
+                            "summary": summary,
+                            "description": description,
+                            "status": status_name,
+                            "assignee": assignee_name,
+                            "reporter": reporter_name,
+                            "created": created_str or "Unknown",
+                            "updated": updated_str,
+                            "url": f"{JIRA_BASE}/browse/{issue_key}",
+                            "comments": [],
+                            "worklogs": [],
+                            "attachments": [],
+                            "changelog": [],
+                            "comment_count": 0,
+                            "worklog_count": 0,
+                            "attachment_count": 0
+                        })
                     
             except Exception as e:
                 print(f"⚠️ 이슈 처리 중 오류 (키: {issue.get('key', 'Unknown')}): {e}")

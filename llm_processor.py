@@ -256,7 +256,22 @@ class LLMProcessor:
         prompt_parts = [
             system_prompt,
             f"\n=== 워크로그 데이터 ===\n",
-            f"사용자: {username}\n\n",
+            f"사용자: {username}\n\n"
+        ]
+        
+        # 개별 Jira 이슈 요약 추가 (최우선)
+        if 'jira_issue_summaries' in worklog_data and worklog_data['jira_issue_summaries']:
+            prompt_parts.extend([
+                f"🔍 JIRA 이슈 개별 요약 ({len(worklog_data['jira_issue_summaries'])}개 항목):\n",
+                "=== 각 이슈별 LLM 요약 결과 ===\n"
+            ])
+            
+            for summary_item in worklog_data['jira_issue_summaries']:
+                prompt_parts.append(f"\n{summary_item['summary']}\n")
+            
+            prompt_parts.append("\n=== 개별 요약 끝 ===\n\n")
+        
+        prompt_parts.extend([
             f"📋 JIRA 활동 데이터 ({len(worklog_data['jira_data'])}개 항목):\n",
             f"{json.dumps(worklog_data['jira_data'], ensure_ascii=False, indent=2)}\n\n",
             f"📝 CONFLUENCE 활동 데이터 ({len(worklog_data['confluence_data'])}개 항목):\n",
@@ -265,7 +280,7 @@ class LLMProcessor:
             f"{json.dumps(worklog_data['gerrit_reviews'], ensure_ascii=False, indent=2)}\n\n",
             f"💬 GERRIT 댓글 데이터 ({len(worklog_data['gerrit_comments'])}개 항목):\n",
             f"{json.dumps(worklog_data['gerrit_comments'], ensure_ascii=False, indent=2)}\n\n"
-        ]
+        ])
         
         # 이메일 데이터 추가 (있는 경우)
         if 'email_summaries' in worklog_data and worklog_data['email_summaries']:
@@ -274,7 +289,15 @@ class LLMProcessor:
                 f"{json.dumps(worklog_data['email_summaries'], ensure_ascii=False, indent=2)}\n\n"
             ])
         
-        prompt_parts.append("위 데이터를 바탕으로 주간 보고서를 작성해주세요.")
+        prompt_parts.append("""
+위 데이터를 바탕으로 주간 보고서를 작성해주세요.
+
+**특별 지시사항**:
+1. 위에 제공된 "JIRA 이슈 개별 요약" 내용을 우선적으로 활용하세요.
+2. 개별 요약에는 이미 LLM이 분석한 상세 내용이 포함되어 있습니다.
+3. 각 이슈의 진행 상황, 댓글, 워크로그 등이 이미 요약되어 있으니 이를 기반으로 작성하세요.
+4. 나머지 원시 데이터는 보조 참고용으로만 사용하세요.
+        """)
         
         return "".join(prompt_parts)
     
@@ -335,6 +358,106 @@ class LLMProcessor:
             
         return result
 
+    def summarize_jira_issue(self, issue_data):
+        """
+        개별 Jira 이슈를 LLM으로 요약
+        
+        Args:
+            issue_data (dict): Jira 이슈 상세 정보
+            
+        Returns:
+            dict: 요약 결과
+        """
+        try:
+            # Jira 이슈 요약용 프롬프트 생성
+            prompt = self._build_jira_issue_prompt(issue_data)
+            
+            # LLM 요약 요청
+            summary = self.continue_conversation(prompt)
+            
+            return {
+                "success": True,
+                "issue_key": issue_data.get("issue_key", ""),
+                "summary": summary,
+                "error": None
+            }
+            
+        except Exception as e:
+            return {
+                "success": False,
+                "issue_key": issue_data.get("issue_key", ""),
+                "summary": "",
+                "error": str(e)
+            }
+    
+    def _build_jira_issue_prompt(self, issue_data):
+        """
+        Jira 이슈 요약용 프롬프트 생성
+        
+        Args:
+            issue_data (dict): Jira 이슈 상세 정보
+            
+        Returns:
+            str: 프롬프트 문자열
+        """
+        prompt = f"""다음 Jira 이슈에 대해 주간 보고서에 포함할 간결한 요약을 작성해 주세요.
+
+## 이슈 정보
+- **이슈 키**: {issue_data.get('issue_key', 'N/A')}
+- **제목**: {issue_data.get('summary', 'N/A')}
+- **상태**: {issue_data.get('status', 'N/A')}
+- **담당자**: {issue_data.get('assignee', 'N/A')}
+- **우선순위**: {issue_data.get('priority', 'N/A')}
+- **생성일**: {issue_data.get('created', 'N/A')}
+- **업데이트일**: {issue_data.get('updated', 'N/A')}
+
+## 이슈 설명
+{issue_data.get('description', '설명 없음')}
+
+## 댓글 내역 ({issue_data.get('comment_count', 0)}개)"""
+        
+        # 댓글 추가
+        if issue_data.get('comments'):
+            for i, comment in enumerate(issue_data['comments'][:5], 1):  # 최근 5개만
+                prompt += f"""
+### 댓글 {i} - {comment.get('author', 'Unknown')} ({comment.get('created', '')})
+{comment.get('body', '')}"""
+        
+        prompt += f"""
+
+## 워크로그 내역 ({issue_data.get('worklog_count', 0)}개)"""
+        
+        # 워크로그 추가
+        if issue_data.get('worklogs'):
+            for i, worklog in enumerate(issue_data['worklogs'][:3], 1):  # 최근 3개만
+                prompt += f"""
+### 워크로그 {i} - {worklog.get('author', 'Unknown')} ({worklog.get('created', '')})
+- 소요 시간: {worklog.get('timeSpent', 'N/A')}
+- 내용: {worklog.get('comment', '')}"""
+        
+        # 첨부파일 정보
+        if issue_data.get('attachment_count', 0) > 0:
+            prompt += f"""
+
+## 첨부파일 ({issue_data.get('attachment_count', 0)}개)"""
+            for attachment in issue_data.get('attachments', [])[:3]:  # 최근 3개만
+                prompt += f"""
+- {attachment.get('filename', 'N/A')} (작성자: {attachment.get('author', 'Unknown')}, 날짜: {attachment.get('created', 'N/A')})"""
+        
+        prompt += """
+
+## 요청사항
+위 이슈 정보를 바탕으로 다음 형식으로 간결한 요약을 작성해 주세요:
+
+### [{이슈키}] {제목}
+- **상태**: {현재 상태}
+- **진행 내용**: {주요 활동과 댓글, 워크로그 요약}
+- **특이사항**: {중요한 변경사항이나 이슈}
+
+한국어로 작성하며, 3-5줄 정도의 간결한 요약으로 작성해 주세요."""
+        
+        return prompt
+
 
 def create_llm_processor(config_file_path):
     """
@@ -374,8 +497,6 @@ def create_llm_processor(config_file_path):
     except Exception as e:
         raise Exception(f"LLMProcessor 생성 중 오류 발생: {e}")
 
-
-# 사용 예제
 if __name__ == "__main__":
     # 예제 사용법
     try:
