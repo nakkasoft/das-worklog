@@ -223,17 +223,13 @@ class JiraUploader:
             today = datetime.now().strftime("%Y-%m-%d")
             summary = f"주간 보고서 - {today} ({self.username})"
             
-            # 설명 생성
-            description = f"""
-자동 생성된 주간 보고서입니다.
+            # 설명 생성 - 전체 주간 보고서 내용 포함
+            description = f"""자동 생성된 주간 보고서입니다.
 
 작성자: {self.username}
 생성일: {datetime.now().strftime("%Y-%m-%d %H:%M:%S")}
 
-=== 주간 보고서 내용 ===
-{summary_content[:1000]}...
-
-전체 내용은 첨부파일을 참조해주세요.
+{summary_content}
 """
             
             # 서브태스크 생성

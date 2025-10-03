@@ -218,8 +218,8 @@ class MyApp(QtWidgets.QMainWindow):
                 self.updateLogs(f"    {issue_url}")
             self.updateLogs("")
         
-        self.updateLogs("📄 주간 보고서:")
-        self.updateLogs(result['summary'])
+        self.updateLogs("✅ 주간 보고서 생성 완료!")
+        self.updateLogs("📋 결과는 Jira 서브태스크에 업로드됩니다.")
 
         # Re-enable the Generate button
         self.pushButton.setEnabled(True)
@@ -615,9 +615,9 @@ class AIWorker(QThread):
                         # JiraUploader 생성
                         uploader = jira_uploader.JiraUploader(config)
                         
-                        # 결과물 업로드
+                        # 결과물 업로드 - 실제 주간 보고서 내용 전달
                         upload_result = uploader.upload_worklog_result(
-                            result.get('content', '주간 보고서 내용')
+                            result.get('summary', '주간 보고서 내용')
                         )
                         
                         if upload_result['success']:
