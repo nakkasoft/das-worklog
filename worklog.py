@@ -205,18 +205,22 @@ class MyApp(QtWidgets.QMainWindow):
 
     def handleAIResult(self, result):
         """AI 처리 결과를 처리합니다 (메인 스레드에서 실행)."""
-        if result['md_content']:
-            self.updateLogs("Contents of the .md file:")
-            self.updateLogs(result['md_content'])
         
-        self.updateLogs("GPT 응답:")
+        # 처리된 Jira 이슈 링크 정보 표시
+        if 'jira_issue_summaries' in result and result['jira_issue_summaries']:
+            self.updateLogs("📋 처리된 Jira 이슈 링크:")
+            for summary_item in result['jira_issue_summaries']:
+                issue_key = summary_item.get('issue_key', 'Unknown')
+                original_data = summary_item.get('original_data', {})
+                issue_url = original_data.get('url', f"http://jira.lge.com/issue/browse/{issue_key}")
+                issue_summary = original_data.get('summary', 'No Summary')
+                self.updateLogs(f"  • [{issue_key}] {issue_summary}")
+                self.updateLogs(f"    {issue_url}")
+            self.updateLogs("")
+        
+        self.updateLogs("📄 주간 보고서:")
         self.updateLogs(result['summary'])
 
-        """
-        QtWidgets.QMessageBox.information(
-            self, "Submission Successful", f"Result: {result['summary']}"
-        )
-        """
         # Re-enable the Generate button
         self.pushButton.setEnabled(True)
 
@@ -593,6 +597,10 @@ class AIWorker(QThread):
             self.stop_animation_signal.emit()  # Stop the loading animation
             if result['success']:
                 self.log_signal.emit("AI 처리 완료!")  # Log success
+                
+                # 결과에 Jira 이슈 요약 정보 추가
+                if 'jira_issue_summaries' in self.worklog_data:
+                    result['jira_issue_summaries'] = self.worklog_data['jira_issue_summaries']
                 
                 # Jira 업로드 기능 추가
                 try:

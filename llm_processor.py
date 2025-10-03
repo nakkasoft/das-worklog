@@ -297,7 +297,21 @@ class LLMProcessor:
 2. 개별 요약에는 이미 LLM이 분석한 상세 내용이 포함되어 있습니다.
 3. 각 이슈의 진행 상황, 댓글, 워크로그 등이 이미 요약되어 있으니 이를 기반으로 작성하세요.
 4. 나머지 원시 데이터는 보조 참고용으로만 사용하세요.
+5. 주요 이슈들에 대해서는 Jira 링크를 포함해 주세요 (예: [CLUSTWORK-12345](http://jira.lge.com/issue/browse/CLUSTWORK-12345)).
         """)
+        
+        # Jira 이슈 링크 정보 추가
+        if 'jira_issue_summaries' in worklog_data and worklog_data['jira_issue_summaries']:
+            prompt_parts.append("""
+
+**참고용 Jira 이슈 링크들**:
+""")
+            for summary_item in worklog_data['jira_issue_summaries']:
+                issue_key = summary_item.get('issue_key', 'Unknown')
+                original_data = summary_item.get('original_data', {})
+                issue_url = original_data.get('url', f"http://jira.lge.com/issue/browse/{issue_key}")
+                issue_summary = original_data.get('summary', 'No Summary')
+                prompt_parts.append(f"- [{issue_key}]({issue_url}): {issue_summary}\n")
         
         return "".join(prompt_parts)
     
