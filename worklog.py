@@ -274,15 +274,37 @@ class MyApp(QtWidgets.QMainWindow):
             print(f"이메일 처리 중 오류: {e}")
             email_summaries = []
 
-
-        print("=== fetch_all_worklog_data 완료 ===")
-        return {
+        # 수집된 모든 데이터 구성
+        all_worklog_data = {
             "jira_data": jira_data,
             "confluence_data": confluence_data,
             "gerrit_reviews": gerrit_reviews,
             "gerrit_comments": gerrit_comments,
             "email_summaries": email_summaries
         }
+
+        # 디버깅용 파일 저장
+        print("디버깅용 데이터 파일 저장 중...")
+        try:
+            from datetime import datetime
+            timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+            debug_filename = f"worklog_debug_{timestamp}.json"
+            
+            with open(debug_filename, 'w', encoding='utf-8') as f:
+                json.dump(all_worklog_data, f, ensure_ascii=False, indent=2)
+            
+            print(f"✅ 디버깅 데이터 저장 완료: {debug_filename}")
+            print(f"   - JIRA: {len(jira_data)}개")
+            print(f"   - Confluence: {len(confluence_data)}개")
+            print(f"   - Gerrit Reviews: {len(gerrit_reviews)}개")
+            print(f"   - Gerrit Comments: {len(gerrit_comments)}개")
+            print(f"   - Email Summaries: {len(email_summaries)}개")
+            
+        except Exception as e:
+            print(f"⚠️ 디버깅 파일 저장 중 오류: {e}")
+
+        print("=== fetch_all_worklog_data 완료 ===")
+        return all_worklog_data
 
 class SettingsDialog(QtWidgets.QDialog):
     def __init__(self, parent=None):
@@ -398,16 +420,39 @@ class Worker(QThread):
                 self.log_signal.emit(f"이메일 처리 중 오류: {e}\n")
                 email_summaries = []
             
-            self.log_signal.emit("=== 모든 데이터 수집 완료 ===")
-
-            # Emit the fetched data
-            self.data_signal.emit({
+            # 수집된 모든 데이터 구성
+            all_worklog_data = {
                 "jira_data": jira_data,
                 "confluence_data": confluence_data,
                 "gerrit_reviews": gerrit_reviews,
                 "gerrit_comments": gerrit_comments,
                 "email_summaries": email_summaries
-            })
+            }
+
+            # 디버깅용 파일 저장
+            self.log_signal.emit("디버깅용 데이터 파일 저장 중...")
+            try:
+                from datetime import datetime
+                timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+                debug_filename = f"worklog_debug_{timestamp}.json"
+                
+                with open(debug_filename, 'w', encoding='utf-8') as f:
+                    json.dump(all_worklog_data, f, ensure_ascii=False, indent=2)
+                
+                self.log_signal.emit(f"✅ 디버깅 데이터 저장 완료: {debug_filename}")
+                self.log_signal.emit(f"   - JIRA: {len(jira_data)}개")
+                self.log_signal.emit(f"   - Confluence: {len(confluence_data)}개")
+                self.log_signal.emit(f"   - Gerrit Reviews: {len(gerrit_reviews)}개")
+                self.log_signal.emit(f"   - Gerrit Comments: {len(gerrit_comments)}개")
+                self.log_signal.emit(f"   - Email Summaries: {len(email_summaries)}개")
+                
+            except Exception as e:
+                self.log_signal.emit(f"⚠️ 디버깅 파일 저장 중 오류: {e}")
+            
+            self.log_signal.emit("=== 모든 데이터 수집 완료 ===")
+
+            # Emit the fetched data
+            self.data_signal.emit(all_worklog_data)
         except Exception as e:
             self.stop_animation_signal.emit()
             self.log_signal.emit(f"오류 발생: {e}")
@@ -430,9 +475,28 @@ class AIWorker(QThread):
         try:
             self.start_animation_signal.emit()  # Start the loading animation
             self.log_signal.emit("AI 처리를 시작합니다...")  # Log the start of AI processing
+            self.log_signal.emit("🔄 새로운 LLM 세션을 시작합니다...")
             
-            # LLMProcessor 생성
+            # LLMProcessor 생성 및 새 세션 시작
             processor = llm_processor.LLMProcessor(self.config)
+            processor.start_new_session()  # 새로운 대화 세션 시작
+            
+            # 이메일 처리에도 같은 LLM 프로세서 사용 (세션 공유)
+            self.log_signal.emit("📧 이메일 데이터를 같은 LLM 세션에서 처리합니다...")
+            try:
+                import email_processor
+                email_proc = email_processor.create_email_processor(processor)  # LLM 세션 공유
+                email_summaries = email_proc.process_outlook_emails()
+                self.log_signal.emit(f"📧 이메일 처리 완료: {len(email_summaries)}개 요약")
+                
+                # 워크로그 데이터에 이메일 요약 추가
+                enhanced_worklog_data = self.worklog_data.copy()
+                enhanced_worklog_data['email_summaries'] = email_summaries
+                self.worklog_data = enhanced_worklog_data
+                
+            except Exception as e:
+                self.log_signal.emit(f"⚠️ 이메일 처리 중 오류: {e}")
+                # 이메일 처리 실패해도 계속 진행
             
             # 워크로그 데이터와 MD 파일을 함께 처리
             result = processor.process_worklog_with_md_file(

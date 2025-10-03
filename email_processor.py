@@ -15,15 +15,24 @@ OUTLOOK_FOLDER_PATH = r"./outlook"
 class EmailProcessor:
     """EML 파일 파싱 및 이메일 요약 처리 클래스"""
     
-    def __init__(self, config):
+    def __init__(self, config, llm_processor=None):
         """
         EmailProcessor 초기화
         
         Args:
             config (dict): 설정 정보 (LLM 설정 포함)
+            llm_processor (LLMProcessor, optional): 외부 LLMProcessor 인스턴스. 없으면 새로 생성
         """
         self.config = config
-        self.llm_processor = llm_processor.LLMProcessor(config)
+        if llm_processor:
+            self.llm_processor = llm_processor
+            self.use_external_llm = True
+            print("📧 이메일 프로세서가 외부 LLM 세션을 사용합니다.")
+        else:
+            import llm_processor as llm_mod
+            self.llm_processor = llm_mod.LLMProcessor(config)
+            self.use_external_llm = False
+            print("📧 이메일 프로세서가 독립적인 LLM 인스턴스를 생성했습니다.")
     
     def find_eml_files(self):
         """
@@ -219,19 +228,27 @@ class EmailProcessor:
             # 이메일 요약용 프롬프트 구성
             prompt = self._build_email_summary_prompt(email_data)
             
-            # Azure OpenAI API 호출
-            completion = self.llm_processor.client.chat.completions.create(
-                model=self.config["azure_openai_chat_deployment"],
-                messages=[
-                    {
-                        "role": "user",
-                        "content": prompt
-                    }
-                ],
-                max_completion_tokens=1000,
-            )
+            if self.use_external_llm:
+                # 외부 LLM 세션을 사용하는 경우 (세션 기반 대화)
+                summary = self.llm_processor.continue_conversation(prompt)
+            else:
+                # 독립적인 LLM 인스턴스를 사용하는 경우 (기존 방식)
+                completion = self.llm_processor.client.chat.completions.create(
+                    model=self.config["azure_openai_chat_deployment"],
+                    messages=[
+                        {
+                            "role": "system",
+                            "content": "당신은 이메일 요약 전문가입니다. 이전 대화 내용은 모두 잊고, 오직 현재 제공되는 이메일 데이터만을 기반으로 요약을 작성해주세요. 매번 새로운 독립적인 작업으로 처리해주세요."
+                        },
+                        {
+                            "role": "user",
+                            "content": prompt
+                        }
+                    ],
+                    max_completion_tokens=1000,
+                )
+                summary = completion.choices[0].message.content
             
-            summary = completion.choices[0].message.content
             print(f"✅ 이메일 요약 완료")
             return summary
             
@@ -261,8 +278,7 @@ class EmailProcessor:
             "위 발송 이메일의 주요 내용을 다음과 같이 요약해주세요:\n",
             "1. 핵심 주제\n",
             "2. 주요 내용 (2-3줄)\n",
-            "3. 요청사항 또는 전달사항\n",
-            "4. 중요도 (높음/보통/낮음)\n\n",
+            "3. 요청사항 또는 전달사항 (있는 경우)\n\n",
             "간결하고 명확하게 작성해주세요."
         ])
         
@@ -375,12 +391,12 @@ class EmailProcessor:
             raise Exception(f"이메일 요약 저장 중 오류: {e}")
 
 
-def create_email_processor():
+def create_email_processor(llm_processor=None):
     """
     설정 파일에서 EmailProcessor 인스턴스 생성
     
     Args:
-        config_file_path (str): user_config.json 파일 경로
+        llm_processor (LLMProcessor, optional): 외부 LLMProcessor 인스턴스
         
     Returns:
         EmailProcessor: 초기화된 EmailProcessor 인스턴스
@@ -389,7 +405,7 @@ def create_email_processor():
         with open(CONFIG_FILE_PATH, 'r', encoding='utf-8') as f:
             config = json.load(f)
         
-        return EmailProcessor(config)
+        return EmailProcessor(config, llm_processor)
         
     except Exception as e:
         raise Exception(f"EmailProcessor 생성 중 오류 발생: {e}")

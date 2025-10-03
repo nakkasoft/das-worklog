@@ -19,6 +19,30 @@ class LLMProcessor:
             api_key=config["azure_openai_api_key"],
             api_version=config["azure_openai_api_version"],
         )
+        # 대화 히스토리 관리
+        self.conversation_history = []
+        self.session_started = False
+    
+    def start_new_session(self):
+        """
+        새로운 대화 세션 시작 (이전 대화 히스토리 초기화)
+        """
+        self.conversation_history = []
+        self.session_started = True
+        print("🔄 새로운 LLM 세션이 시작되었습니다. 이전 대화 기록이 초기화되었습니다.")
+    
+    def add_to_conversation(self, role, content):
+        """
+        대화 히스토리에 메시지 추가
+        
+        Args:
+            role (str): "system", "user", "assistant"
+            content (str): 메시지 내용
+        """
+        self.conversation_history.append({
+            "role": role,
+            "content": content
+        })
     
     def find_md_file(self, directory_path):
         """
@@ -108,7 +132,7 @@ class LLMProcessor:
     
     def generate_worklog_summary(self, username, worklog_data, md_content=None):
         """
-        워크로그 데이터를 LLM으로 요약
+        워크로그 데이터를 LLM으로 요약 (세션 기반 대화)
         
         Args:
             username (str): 사용자명
@@ -119,25 +143,79 @@ class LLMProcessor:
             str: LLM이 생성한 요약 내용
         """
         try:
+            # 새 세션이 시작되지 않았다면 자동으로 시작
+            if not self.session_started:
+                self.start_new_session()
+                
+                # 시스템 메시지 추가 (세션 시작 시 한 번만)
+                system_message = """당신은 주간 보고서 작성 전문가입니다. 
+                사용자와의 대화를 통해 더 나은 주간 보고서를 작성해주세요.
+                
+                주간 보고 작성 가이드라인:
+                1. Issue 현황은 사용자가 수정한 Issue만 포함됩니다. 
+                2. 주요 처리 Issue나 주요 잔여 Issue는 Issue의 제목을 넣어 주고, Issue의 내용을 간략하게 설명해 주세요.
+                3. 사용자가 해당 Issue에 대해서 수행한 작업들을 Comment Base로 작성해 주세요.
+                4. 기술 관련 Issue라면 어느 정도 기술관련 내용이 들어가면 좋습니다.
+                5. 사용자가 추가 질문이나 수정 요청을 하면 대화 맥락을 유지하면서 응답해주세요."""
+                
+                self.add_to_conversation("system", system_message)
+            
             # 프롬프트 구성
             prompt_content = self._build_prompt(username, worklog_data, md_content)
+            
+            # 사용자 메시지를 히스토리에 추가
+            self.add_to_conversation("user", prompt_content)
+            
+            # Azure OpenAI API 호출 (전체 대화 히스토리 포함)
+            completion = self.client.chat.completions.create(
+                model=self.config["azure_openai_chat_deployment"],
+                messages=self.conversation_history,
+                max_completion_tokens=10000,
+            )
+            
+            response = completion.choices[0].message.content
+            
+            # 어시스턴트 응답을 히스토리에 추가
+            self.add_to_conversation("assistant", response)
+            
+            return response
+            
+        except Exception as e:
+            raise Exception(f"LLM 요약 생성 중 오류 발생: {e}")
+    
+    def continue_conversation(self, user_message):
+        """
+        기존 세션에서 대화 계속하기
+        
+        Args:
+            user_message (str): 사용자의 추가 질문이나 요청
+            
+        Returns:
+            str: LLM 응답
+        """
+        try:
+            if not self.session_started:
+                raise Exception("대화 세션이 시작되지 않았습니다. 먼저 generate_worklog_summary를 호출하세요.")
+            
+            # 사용자 메시지를 히스토리에 추가
+            self.add_to_conversation("user", user_message)
             
             # Azure OpenAI API 호출
             completion = self.client.chat.completions.create(
                 model=self.config["azure_openai_chat_deployment"],
-                messages=[
-                    {
-                        "role": "user",
-                        "content": prompt_content
-                    }
-                ],
+                messages=self.conversation_history,
                 max_completion_tokens=10000,
             )
             
-            return completion.choices[0].message.content
+            response = completion.choices[0].message.content
+            
+            # 어시스턴트 응답을 히스토리에 추가
+            self.add_to_conversation("assistant", response)
+            
+            return response
             
         except Exception as e:
-            raise Exception(f"LLM 요약 생성 중 오류 발생: {e}")
+            raise Exception(f"대화 계속 중 오류 발생: {e}")
     
     def _build_prompt(self, username, worklog_data, md_content=None):
         """

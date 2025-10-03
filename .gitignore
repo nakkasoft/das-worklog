@@ -117,6 +117,7 @@ gerrit_*.csv
 integrated_activity_timeline.csv
 email_summaries.json
 email_*.json
+worklog_debug_*.json
 
 # 임시 파일
 *.tmp
