@@ -7,6 +7,8 @@ from PyQt5.QtGui import QTextCursor, QMovie
 import worklog_extractor
 import llm_processor
 import email_processor
+import jira_uploader
+from datetime import datetime
 
 class LoadingAnimationThread(QThread):
     """Thread to control the loading animation."""
@@ -252,8 +254,20 @@ class MyApp(QtWidgets.QMainWindow):
         print(f"사용자: {username}")
         print("각 시스템에서 데이터 수집을 시작합니다...")
         
+        # user_config.json에서 제외할 이슈 목록 읽기
+        excluded_issues = []
+        try:
+            with open("user_config.json", "r", encoding="utf-8") as f:
+                config = json.load(f)
+                master_jira = config.get("master_jira", "")
+                if master_jira:
+                    excluded_issues.append(master_jira)
+                    print(f"📋 제외 대상 마스터 이슈: {master_jira}")
+        except Exception as e:
+            print(f"⚠️ user_config.json 읽기 실패: {e}")
+        
         print("JIRA 데이터 수집 중...")
-        jira_data = worklog_extractor.collect_jira_data(username, jira_token)
+        jira_data = worklog_extractor.collect_jira_data(username, jira_token, excluded_issues)
         print(f"JIRA 데이터 수집 완료: {len(jira_data)}개 항목")
         
         print("Confluence 데이터 수집 중...")
@@ -388,6 +402,18 @@ class Worker(QThread):
         self.jira_token = jira_token
         self.confluence_token = confluence_token
         self.gerrit_tokens = gerrit_tokens
+        
+        # user_config.json에서 제외할 이슈 목록 읽기
+        self.excluded_issues = []
+        try:
+            with open("user_config.json", "r", encoding="utf-8") as f:
+                config = json.load(f)
+                master_jira = config.get("master_jira", "")
+                if master_jira:
+                    self.excluded_issues.append(master_jira)
+                    print(f"📋 제외 대상 마스터 이슈: {master_jira}")
+        except Exception as e:
+            print(f"⚠️ user_config.json 읽기 실패: {e}")
 
     def run(self):
         self.log_signal.emit(f"사용자: {self.username}")
@@ -397,7 +423,7 @@ class Worker(QThread):
             # Fetch data
             self.start_animation_signal.emit()
             self.log_signal.emit("JIRA 데이터 수집 중...")
-            jira_data = worklog_extractor.collect_jira_data(self.username, self.jira_token)
+            jira_data = worklog_extractor.collect_jira_data(self.username, self.jira_token, self.excluded_issues)
             self.stop_animation_signal.emit()
             self.log_signal.emit(f"JIRA 데이터 수집 완료: {len(jira_data)}개 항목\n")
 
@@ -522,6 +548,39 @@ class AIWorker(QThread):
             self.stop_animation_signal.emit()  # Stop the loading animation
             if result['success']:
                 self.log_signal.emit("AI 처리 완료!")  # Log success
+                
+                # Jira 업로드 기능 추가
+                try:
+                    self.log_signal.emit("📋 Jira에 결과물 업로드를 시작합니다...")
+                    
+                    # user_config.json에서 master_jira 읽기
+                    with open("user_config.json", "r", encoding="utf-8") as f:
+                        config = json.load(f)
+                        master_jira = config.get("master_jira", "")
+                        
+                    if master_jira:
+                        # JiraUploader 생성
+                        uploader = jira_uploader.JiraUploader(
+                            jira_token=config.get("jira_token", ""),
+                            username=self.username
+                        )
+                        
+                        # 결과물 업로드
+                        upload_result = uploader.upload_worklog_result(
+                            master_issue_key=master_jira,
+                            result_data=result
+                        )
+                        
+                        if upload_result['success']:
+                            self.log_signal.emit(f"✅ Jira 업로드 완료: {upload_result.get('subtask_url', 'URL 정보 없음')}")
+                        else:
+                            self.log_signal.emit(f"❌ Jira 업로드 실패: {upload_result.get('error', '알 수 없는 오류')}")
+                    else:
+                        self.log_signal.emit("⚠️ user_config.json에 master_jira가 설정되지 않았습니다. Jira 업로드를 건너뜁니다.")
+                        
+                except Exception as e:
+                    self.log_signal.emit(f"❌ Jira 업로드 중 오류: {e}")
+                
                 self.result_signal.emit(result)  # Emit the result
             else:
                 error_msg = result['error'] or "알 수 없는 오류가 발생했습니다."

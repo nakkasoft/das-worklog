@@ -99,13 +99,14 @@ def extract_text_from_adf(adf_content):
 # JIRA 데이터 수집 함수
 # =============================================================================
 
-def collect_jira_data(username, token):
+def collect_jira_data(username, token, excluded_issues=None):
     """
     Jira 데이터 수집
     
     Args:
         username (str): Jira 사용자명
         token (str): Jira API 토큰
+        excluded_issues (list, optional): 분석에서 제외할 이슈 키 목록
         
     Returns:
         list: Jira 활동 데이터 리스트
@@ -114,6 +115,9 @@ def collect_jira_data(username, token):
         "Accept": "application/json",
         "Authorization": f"Bearer {token}"
     }
+    
+    if excluded_issues is None:
+        excluded_issues = []
     
     try:
         # 사용자 ID 가져오기
@@ -161,8 +165,21 @@ def collect_jira_data(username, token):
         print(f"✅ Jira에서 {len(issues)}개의 이슈를 가져왔습니다.")
         
         activities = []
+        excluded_count = 0
+        
         for issue in issues:
             try:
+                # 이슈 키 확인
+                issue_key = issue.get("key", "")
+                
+                # 제외 대상 이슈인지 확인
+                if issue_key in excluded_issues:
+                    excluded_count += 1
+                    fields = issue.get("fields", {})
+                    summary = fields.get("summary", "")[:50]
+                    print(f"⏭️ 분석 제외: {issue_key} - {summary}...")
+                    continue
+                
                 # 기본 필드들 안전하게 가져오기
                 fields = issue.get("fields", {})
                 if not fields:
@@ -233,6 +250,9 @@ def collect_jira_data(username, token):
             except Exception as e:
                 print(f"⚠️ 이슈 처리 중 오류 (키: {issue.get('key', 'Unknown')}): {e}")
                 continue
+        
+        if excluded_count > 0:
+            print(f"📊 Jira 분석 결과: {len(activities)}개 포함, {excluded_count}개 제외")
         
         return activities
         
@@ -668,11 +688,28 @@ def main():
         "AS": ""
     }
     
+    # user_config.json에서 제외할 이슈 목록 읽기
+    excluded_issues = []
+    try:
+        with open("user_config.json", "r", encoding="utf-8") as f:
+            config = json.load(f)
+            master_jira = config.get("master_jira", "")
+            if master_jira:
+                # master_jira를 제외 목록에 추가
+                excluded_issues.append(master_jira)
+                print(f"📋 제외 대상 마스터 이슈: {master_jira}")
+                
+                # TODO: 나중에 Jira API를 통해 master_jira의 subtask들도 가져와서 제외 목록에 추가
+                # (현재는 master_jira만 제외)
+                
+    except Exception as e:
+        print(f"⚠️ user_config.json 읽기 실패: {e}")
+    
     # 1. 각 시스템에서 데이터 수집
     print("\n=== 데이터 수집 ===")
     
     print("JIRA 데이터 수집 중...")
-    jira_data = collect_jira_data(USERNAME, JIRA_TOKEN)
+    jira_data = collect_jira_data(USERNAME, JIRA_TOKEN, excluded_issues)
     print(f"✓ Jira 활동: {len(jira_data)}개")
     
     print("Confluence 데이터 수집 중...")
@@ -743,7 +780,7 @@ def example_usage():
     }
     
     # 1. 개별 시스템에서 데이터 수집
-    jira_activities = collect_jira_data(username, jira_token)
+    jira_activities = collect_jira_data(username, jira_token, excluded_issues=None)
     confluence_activities = collect_confluence_data(username, confluence_token)
     gerrit_reviews, gerrit_comments = collect_gerrit_data(username, gerrit_tokens)
     
