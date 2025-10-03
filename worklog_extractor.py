@@ -23,7 +23,7 @@ GERRIT_URLS = {
 
 # 시간 설정
 NOW_UTC = dt.datetime.now(dt.UTC).replace(tzinfo=None)
-SINCE = NOW_UTC - dt.timedelta(days=1)
+SINCE = NOW_UTC - dt.timedelta(days=7)  # 7일로 확장하여 더 많은 티켓 분석
 
 def iso_to_dt(s):
     """시간 문자열을 datetime 객체로 변환"""
@@ -245,8 +245,8 @@ def collect_jira_data(username, token, excluded_issues=None):
         r.raise_for_status()
         user_data = r.json()
         
-        # 최근 1일간의 활동 검색
-        jql = "(updated >= -1d) AND (assignee = currentUser() OR reporter = currentUser() OR comment ~ currentUser() OR worklogAuthor = currentUser())"
+        # 최근 7일간의 활동 검색 (더 넓은 범위로 확장)
+        jql = "(updated >= -14d) AND (assignee = currentUser() OR reporter = currentUser() OR comment ~ currentUser() OR worklogAuthor = currentUser())"
         #jql = "Key = CLUSTWORK-16128"
         
         params = {
@@ -835,7 +835,7 @@ def main():
     메인 실행 함수 - 실제 토큰과 사용자명으로 수정하여 사용
     """
     print("=== Jira & Confluence & Gerrit 통합 활동 추출기 ===")
-    print(f"수집 기간: 최근 1일 ({SINCE.strftime('%Y-%m-%d')} 이후)")
+    print(f"수집 기간: 최근 7일 ({SINCE.strftime('%Y-%m-%d')} 이후)")
     
     # 실제 사용자 정보 설정 (여기서 수정하여 사용)
     USERNAME = ""
