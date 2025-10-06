@@ -1,0 +1,99 @@
+Delivered-To: test@example.com
+Received: by 2002:a05:6402:9999:b0:111:222a:333b with SMTP id test123test456;
+        Wed, 02 Oct 2025 16:45:22 -0700 (PDT)
+Message-ID: <CATest1234567890@mail.example.com>
+Date: Wed, 2 Oct 2025 09:45:22 +0900
+From: test_sangyeob@test.com
+To: supplier@vendor.com
+Cc: procurement@lge.com, quality@lge.com
+Subject: [긴급] 하드웨어 부품 품질 이슈 대응 요청
+MIME-Version: 1.0
+Content-Type: multipart/mixed; boundary="----=_NextPart_000_0001_01DB1234.5678ABCD"
+
+------=_NextPart_000_0001_01DB1234.5678ABCD
+Content-Type: text/html; charset=UTF-8
+Content-Transfer-Encoding: quoted-printable
+
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+</head>
+<body>
+<p><strong style="color: red;">긴급사항</strong></p>
+
+<p>OO 벤더 담당자님께,</p>
+
+<p>납품해주신 하드웨어 부품에서 품질 이슈가 발견되어 긴급히 연락드립니다.</p>
+
+<h3>🚨 발견된 이슈</h3>
+<table border="1" style="border-collapse: collapse; width: 100%;">
+<tr style="background-color: #f0f0f0;">
+  <th>부품명</th>
+  <th>Lot 번호</th>
+  <th>이슈 내용</th>
+  <th>발견 수량</th>
+</tr>
+<tr>
+  <td>MCU 모듈 (ARM-M7)</td>
+  <td>LOT-2025-0928-A</td>
+  <td>온도 센서 오작동</td>
+  <td>50개 / 1000개</td>
+</tr>
+<tr>
+  <td>Display Controller</td>
+  <td>LOT-2025-0925-B</td>
+  <td>화면 깜빡임 현상</td>
+  <td>12개 / 500개</td>
+</tr>
+</table>
+
+<h3>⚡ 즉시 대응 요청사항</h3>
+<ol>
+<li><strong>원인 분석</strong>: 해당 Lot의 제조 과정 검토</li>
+<li><strong>전수 검사</strong>: 동일 Lot 전체 품질 검증</li>
+<li><strong>대체품 공급</strong>: 정상 제품으로 교체 공급</li>
+<li><strong>개선 대책</strong>: 재발 방지를 위한 프로세스 개선안</li>
+</ol>
+
+<h3>📋 상세 정보</h3>
+<p><strong>발견 일시:</strong> 2025년 10월 2일 오전 8시 30분</p>
+<p><strong>테스트 환경:</strong> 온도 -20°C ~ +85°C 구간 테스트</p>
+<p><strong>발견자:</strong> 품질관리팀 김OO 엔지니어</p>
+<p><strong>영향도:</strong> 양산 일정 1주일 지연 예상</p>
+
+<h3>🕐 대응 일정</h3>
+<ul>
+<li><strong>오늘(10/2) 17:00까지</strong>: 초기 원인 분석 보고서</li>
+<li><strong>내일(10/3) 10:00</strong>: 화상 미팅 (상세 논의)</li>
+<li><strong>10/4까지</strong>: 전수 검사 결과 및 대체품 공급 계획</li>
+<li><strong>10/7까지</strong>: 개선 대책 수립 및 시행</li>
+</ul>
+
+<p style="background-color: #fff3cd; padding: 10px; border: 1px solid #ffeaa7;">
+<strong>⚠️ 주의사항:</strong><br>
+본 이슈는 최종 제품의 안전성과 직결되는 중요한 사안입니다.<br>
+신속하고 정확한 대응을 부탁드리며, 관련 문서는 첨부파일을 참조해 주세요.
+</p>
+
+<p>추가 문의사항이나 긴급 연락이 필요하시면 아래 연락처로 즉시 연락 부탁드립니다.</p>
+
+<p>감사합니다.</p>
+
+<p>--<br>
+나OO<br>
+Hardware Integration Team<br>
+LG Electronics<br>
+Mobile: +82-10-1234-5678<br>
+Email: sangyeob.na@lge.com</p>
+</body>
+</html>
+
+------=_NextPart_000_0001_01DB1234.5678ABCD
+Content-Type: application/pdf; name="quality_issue_report.pdf"
+Content-Transfer-Encoding: base64
+Content-Disposition: attachment; filename="quality_issue_report.pdf"
+
+JVBERi0xLjQKJcOkw7zDqsK6CjEgMCBvYmoKPDwKL1R5cGUgL0NhdGFsb2cKL1BhZ2VzIDIgMCBSCj4+CmVuZG9iago==
+
+------=_NextPart_000_0001_01DB1234.5678ABCD--

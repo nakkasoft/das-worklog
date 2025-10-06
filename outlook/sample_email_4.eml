@@ -1,0 +1,108 @@
+Delivered-To: test@example.com
+Received: by 2002:a05:6402:7777:b0:888:999a:000b with SMTP id meet123conf456;
+        Fri, 04 Oct 2025 10:20:30 -0700 (PDT)
+Message-ID: <CAMeet567890123@mail.example.com>
+Date: Fri, 4 Oct 2025 14:20:30 +0900
+From: test_sangyeob@test.com
+To: development.team@lge.com
+Cc: architect@lge.com, product.owner@lge.com
+Subject: [회의록] 10/4 아키텍처 리뷰 미팅 - 시스템 설계 방향성 논의
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+팀원 여러분께,
+
+오늘 진행된 아키텍처 리뷰 미팅 내용을 공유드립니다.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+📅 회의 정보
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+• 일시: 2025년 10월 4일 (금) 14:00 ~ 16:00
+• 참석자: 나OO, 김OO, 이OO, 박OO, 최OO (총 5명)
+• 장소: 온라인 (Zoom)
+• 안건: 차세대 시스템 아키텍처 설계 리뷰
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+🎯 주요 논의 사항
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+1. 마이크로서비스 아키텍처 도입
+   ✅ 결정: MSA 패턴 채택
+   • 서비스 분리 기준: 도메인 중심 설계(DDD) 적용
+   • API Gateway 패턴 도입 (Kong 또는 NGINX Plus 검토)
+   • 서비스 간 통신: REST API + Message Queue (RabbitMQ)
+
+2. 데이터베이스 전략
+   ✅ 결정: 폴리글롯 퍼시스턴스 적용
+   • 메인 DB: PostgreSQL (ACID 보장 필요한 트랜잭션)
+   • 캐시: Redis (세션, 임시 데이터)
+   • 로그: ElasticSearch (검색 및 분석)
+   • 파일: MinIO (S3 호환 객체 스토리지)
+
+3. 컨테이너화 및 오케스트레이션
+   ✅ 결정: Docker + Kubernetes
+   • Base Image: Alpine Linux (보안 + 경량화)
+   • 배포 전략: Blue-Green Deployment
+   • 모니터링: Prometheus + Grafana
+   • 로깅: ELK Stack (ElasticSearch + Logstash + Kibana)
+
+4. CI/CD 파이프라인
+   ✅ 결정: GitLab CI/CD 활용
+   • 코드 품질: SonarQube 연동
+   • 보안 스캔: OWASP ZAP, Trivy
+   • 자동화 테스트: Unit/Integration/E2E 3단계
+   • 배포 승인: 2-stage approval (Dev → Staging → Production)
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+⚡ 액션 아이템
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+[나OO]
+• MSA 서비스 분리 설계서 작성 (마감: 10/11)
+• API Gateway 솔루션 비교 분석 (마감: 10/9)
+• 개발환경 구축 가이드 작성 (마감: 10/14)
+
+[김OO]
+• 데이터베이스 마이그레이션 계획 수립 (마감: 10/12)
+• 데이터 백업/복구 전략 설계 (마감: 10/15)
+
+[이OO]
+• Kubernetes 클러스터 구축 (마감: 10/18)
+• 모니터링 대시보드 구성 (마감: 10/20)
+
+[박OO]
+• CI/CD 파이프라인 구축 (마감: 10/16)
+• 자동화 테스트 프레임워크 선정 (마감: 10/10)
+
+[최OO]
+• 보안 정책 및 가이드라인 작성 (마감: 10/13)
+• 코드 리뷰 프로세스 정의 (마감: 10/11)
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+🔄 다음 미팅
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+• 일시: 10월 11일 (금) 15:00 ~ 17:00
+• 안건: 
+  - 액션 아이템 진행 상황 점검
+  - MSA 서비스 분리 설계 리뷰
+  - 개발 일정 및 마일스톤 확정
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+📎 참고 자료
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+• 아키텍처 다이어그램: https://confluence.lge.com/arch-design-v2
+• 기술 스택 비교표: https://docs.google.com/spreadsheets/d/xyz123
+• MSA 전환 가이드: https://internal-wiki.lge.com/msa-guide
+
+궁금한 사항이나 추가 논의가 필요한 부분이 있으시면 언제든 말씀해 주세요.
+
+감사합니다.
+
+--
+나OO
+Technical Lead / Solution Architect
+Software Development Team
+LG Electronics
+sangyeob.na@lge.com
+Internal: 02-1234-5678
