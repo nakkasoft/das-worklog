@@ -4,8 +4,8 @@ Received: by 2002:a05:6402:7777:b0:888:999a:000b with SMTP id meet123conf456;
 Message-ID: <CAMeet567890123@mail.example.com>
 Date: Fri, 4 Oct 2025 14:20:30 +0900
 From: test_sangyeob@test.com
-To: development.team@lge.com
-Cc: architect@lge.com, product.owner@lge.com
+To: development.team@lll.com
+Cc: architect@lll.com, product.owner@lll.com
 Subject: [회의록] 10/4 아키텍처 리뷰 미팅 - 시스템 설계 방향성 논의
 MIME-Version: 1.0
 Content-Type: text/plain; charset=UTF-8
@@ -91,9 +91,9 @@ Content-Transfer-Encoding: 8bit
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 📎 참고 자료
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-• 아키텍처 다이어그램: https://confluence.lge.com/arch-design-v2
+• 아키텍처 다이어그램: https://confluence.google.com/arch-design-v2
 • 기술 스택 비교표: https://docs.google.com/spreadsheets/d/xyz123
-• MSA 전환 가이드: https://internal-wiki.lge.com/msa-guide
+• MSA 전환 가이드: https://internal-wiki.google.com/msa-guide
 
 궁금한 사항이나 추가 논의가 필요한 부분이 있으시면 언제든 말씀해 주세요.
 
@@ -103,6 +103,5 @@ Content-Transfer-Encoding: 8bit
 나OO
 Technical Lead / Solution Architect
 Software Development Team
-LG Electronics
-sangyeob.na@lge.com
+Elec.
 Internal: 02-1234-5678

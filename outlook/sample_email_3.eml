@@ -5,7 +5,7 @@ Message-ID: <CATest1234567890@mail.example.com>
 Date: Wed, 2 Oct 2025 09:45:22 +0900
 From: test_sangyeob@test.com
 To: supplier@vendor.com
-Cc: procurement@lge.com, quality@lge.com
+Cc: procurement@lll.com, quality@lll.com
 Subject: [긴급] 하드웨어 부품 품질 이슈 대응 요청
 MIME-Version: 1.0
 Content-Type: multipart/mixed; boundary="----=_NextPart_000_0001_01DB1234.5678ABCD"
@@ -83,9 +83,8 @@ Content-Transfer-Encoding: quoted-printable
 <p>--<br>
 나OO<br>
 Hardware Integration Team<br>
-LG Electronics<br>
-Mobile: +82-10-1234-5678<br>
-Email: sangyeob.na@lge.com</p>
+Elec.<br>
+Mobile: +82-10-1234-5678</p>
 </body>
 </html>
 
