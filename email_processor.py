@@ -13,26 +13,17 @@ CONFIG_FILE_PATH = "user_config.json"
 OUTLOOK_FOLDER_PATH = r"./outlook"
 
 class EmailProcessor:
-    """EML 파일 파싱 및 이메일 요약 처리 클래스"""
+    """EML 파일 파싱 및 이메일 데이터 수집 클래스 (LLM 처리 분리)"""
     
-    def __init__(self, config, llm_processor=None):
+    def __init__(self, config=None):
         """
         EmailProcessor 초기화
         
         Args:
-            config (dict): 설정 정보 (LLM 설정 포함)
-            llm_processor (LLMProcessor, optional): 외부 LLMProcessor 인스턴스. 없으면 새로 생성
+            config (dict, optional): 설정 정보 (현재는 사용하지 않음, 호환성 위해 유지)
         """
         self.config = config
-        if llm_processor:
-            self.llm_processor = llm_processor
-            self.use_external_llm = True
-            print("📧 이메일 프로세서가 외부 LLM 세션을 사용합니다.")
-        else:
-            import llm_processor as llm_mod
-            self.llm_processor = llm_mod.LLMProcessor(config)
-            self.use_external_llm = False
-            print("📧 이메일 프로세서가 독립적인 LLM 인스턴스를 생성했습니다.")
+        print("📧 이메일 프로세서가 데이터 수집 모드로 초기화되었습니다.")
     
     def find_eml_files(self):
         """
@@ -284,90 +275,86 @@ class EmailProcessor:
         
         return "".join(prompt_parts)
     
-    def process_outlook_emails(self, outlook_folder_path=None, date_filter=None):
+    def collect_email_data(self, outlook_folder_path=None, date_filter=None):
         """
-        Outlook 폴더의 모든 EML 파일을 하나씩 처리하여 요약 생성
+        Outlook 폴더의 모든 EML 파일을 파싱하여 원시 데이터 수집 (LLM 처리 없음)
         
         Args:
             outlook_folder_path (str): Outlook 폴더 경로 (사용하지 않음, 호환성 위해 유지)
             date_filter (str, optional): 날짜 필터 (YYYY-MM-DD 형식)
             
         Returns:
-            list: 처리된 이메일 요약 배열
+            list: 파싱된 이메일 데이터 배열 (LLM 요약 없음)
         """
-        processed_summaries = []
+        email_data_list = []
         
         try:
-            print(f"📂 Outlook 이메일 처리 시작: {OUTLOOK_FOLDER_PATH}")
+            print(f"📂 Outlook 이메일 데이터 수집 시작: {OUTLOOK_FOLDER_PATH}")
             
             # EML 파일 찾기
             eml_files = self.find_eml_files()
             
             if not eml_files:
-                print("⚠️ 처리할 EML 파일이 없습니다.")
-                return processed_summaries
+                print("⚠️ 수집할 EML 파일이 없습니다.")
+                return email_data_list
             
-            print(f"📧 총 {len(eml_files)}개의 EML 파일을 순차적으로 처리합니다.")
+            print(f"📧 총 {len(eml_files)}개의 EML 파일에서 데이터를 수집합니다.")
             
             for index, eml_file in enumerate(eml_files, 1):
                 try:
-                    print(f"\n[{index}/{len(eml_files)}] 처리 중: {os.path.basename(eml_file)}")
+                    print(f"[{index}/{len(eml_files)}] 데이터 수집 중: {os.path.basename(eml_file)}")
                     
-                    # 1. EML 파일 파싱
+                    # EML 파일 파싱 (LLM 처리 없음)
                     email_data = self.parse_eml_file(eml_file)
                     
-                    # 2. 날짜 필터 적용 (옵션)
+                    # 날짜 필터 적용 (옵션)
                     if date_filter and email_data['date']:
                         email_date = email_data['date'][:10]  # YYYY-MM-DD 부분만
                         if email_date < date_filter:
                             print(f"⏭️ 날짜 필터로 제외: {email_data['subject'][:30]}...")
                             continue
                     
-                    # 3. 이메일 요약 생성 (하나씩 LLM 요청)
+                    # 유효한 본문이 있는 경우만 수집
                     if email_data['body_clean'].strip():
-                        print(f"🤖 LLM 요약 요청 중...")
-                        summary = self.summarize_email(email_data)
-                        
-                        # 요약 결과를 배열에 추가 (발신자 제외, 간소화된 필드)
-                        summary_item = {
-                            'subject': email_data['subject'],
-                            'to': email_data['to'],
-                            'ai_summary': summary
-                        }
-                        processed_summaries.append(summary_item)
-                        print(f"✅ 요약 완료 및 배열에 추가")
+                        # 데이터 타입 표시 추가
+                        email_data['source'] = 'email'
+                        email_data['type'] = 'sent_email'
+                        email_data_list.append(email_data)
+                        print(f"✅ 데이터 수집 완료")
                     else:
-                        print(f"⚠️ 본문이 비어있어 요약 생략")
-                        summary_item = {
-                            'subject': email_data['subject'],
-                            'to': email_data['to'],
-                            'ai_summary': "본문이 비어있거나 읽을 수 없습니다."
-                        }
-                        processed_summaries.append(summary_item)
+                        print(f"⚠️ 본문이 비어있어 수집 제외")
                     
                 except Exception as e:
-                    print(f"❌ EML 파일 처리 오류 ({os.path.basename(eml_file)}): {e}")
+                    print(f"❌ EML 파일 파싱 오류 ({os.path.basename(eml_file)}): {e}")
                     # 오류가 있어도 다른 파일 계속 처리
-                    error_item = {
-                        'subject': "파싱 오류",
-                        'to': "알 수 없음",
-                        'ai_summary': f"처리 중 오류 발생: {str(e)}"
-                    }
-                    processed_summaries.append(error_item)
                     continue
             
-            print(f"\n🎉 모든 이메일 처리 완료!")
-            print(f"   - 총 처리된 파일: {len(processed_summaries)}개")
-            print(f"   - 성공적으로 요약된 이메일: {len([s for s in processed_summaries if not s['ai_summary'].startswith('처리 중 오류')])}개")
+            print(f"\n🎉 이메일 데이터 수집 완료!")
+            print(f"   - 총 수집된 이메일: {len(email_data_list)}개")
             
-            return processed_summaries
+            return email_data_list
             
         except Exception as e:
-            error_msg = f"이메일 처리 중 전체 오류: {e}"
+            error_msg = f"이메일 데이터 수집 중 오류: {e}"
             print(f"❌ {error_msg}")
             raise Exception(error_msg)
     
-    def save_email_summaries(self, processed_summaries, output_file="email_summaries.json"):
+    def process_outlook_emails(self, outlook_folder_path=None, date_filter=None):
+        """
+        호환성을 위한 래퍼 함수 - 이전 방식과 동일하게 동작
+        실제로는 collect_email_data()를 호출하여 데이터만 수집
+        
+        Args:
+            outlook_folder_path (str): Outlook 폴더 경로
+            date_filter (str, optional): 날짜 필터 (YYYY-MM-DD 형식)
+            
+        Returns:
+            list: 수집된 이메일 데이터 (요약 없음)
+        """
+        print("⚠️ process_outlook_emails()는 이제 데이터 수집만 수행합니다.")
+        print("   LLM 요약은 별도 단계에서 처리됩니다.")
+        
+        return self.collect_email_data(outlook_folder_path, date_filter)
         """
         처리된 이메일 요약 배열을 JSON 파일로 저장
         
@@ -400,21 +387,19 @@ class EmailProcessor:
             raise Exception(f"이메일 요약 저장 중 오류: {e}")
 
 
-def create_email_processor(llm_processor=None):
+def create_email_processor(config=None):
     """
-    설정 파일에서 EmailProcessor 인스턴스 생성
+    EmailProcessor 인스턴스 생성 (데이터 수집 전용)
     
     Args:
-        llm_processor (LLMProcessor, optional): 외부 LLMProcessor 인스턴스
+        config (dict, optional): 설정 정보 (현재는 사용하지 않음)
         
     Returns:
         EmailProcessor: 초기화된 EmailProcessor 인스턴스
     """
     try:
-        with open(CONFIG_FILE_PATH, 'r', encoding='utf-8') as f:
-            config = json.load(f)
-        
-        return EmailProcessor(config, llm_processor)
+        print("📧 이메일 데이터 수집용 프로세서를 생성합니다.")
+        return EmailProcessor(config)
         
     except Exception as e:
         raise Exception(f"EmailProcessor 생성 중 오류 발생: {e}")

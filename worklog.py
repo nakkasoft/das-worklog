@@ -292,15 +292,15 @@ class MyApp(QtWidgets.QMainWindow):
         gerrit_reviews, gerrit_comments = worklog_extractor.collect_gerrit_data(username, gerrit_tokens)
         print(f"Gerrit 데이터 수집 완료: 리뷰 {len(gerrit_reviews)}개, 댓글 {len(gerrit_comments)}개")
         
-        # 이메일 데이터 수집 추가
+        # 이메일 데이터 수집 (LLM 처리 없음)
         print("이메일 데이터 수집 중...")
         try:
             email_proc = email_processor.create_email_processor()
-            email_summaries = email_proc.process_outlook_emails()
-            print(f"이메일 데이터 수집 완료: {len(email_summaries)}개 요약")
+            email_data_list = email_proc.collect_email_data()  # 변경: 데이터만 수집
+            print(f"이메일 데이터 수집 완료: {len(email_data_list)}개")
         except Exception as e:
-            print(f"이메일 처리 중 오류: {e}")
-            email_summaries = []
+            print(f"이메일 데이터 수집 중 오류: {e}")
+            email_data_list = []
 
         # 수집된 모든 데이터 구성
         all_worklog_data = {
@@ -308,7 +308,7 @@ class MyApp(QtWidgets.QMainWindow):
             "confluence_data": confluence_data,
             "gerrit_reviews": gerrit_reviews,
             "gerrit_comments": gerrit_comments,
-            "email_summaries": email_summaries
+            "email_data": email_data_list  # 변경: 원시 이메일 데이터
         }
 
         # 디버깅용 파일 저장
@@ -333,7 +333,7 @@ class MyApp(QtWidgets.QMainWindow):
             print(f"   - Confluence: {len(confluence_data)}개")
             print(f"   - Gerrit Reviews: {len(gerrit_reviews)}개")
             print(f"   - Gerrit Comments: {len(gerrit_comments)}개")
-            print(f"   - Email Summaries: {len(email_summaries)}개")
+            print(f"   - Email Data: {len(email_data_list)}개")
             
         except Exception as e:
             print(f"⚠️ 디버깅 파일 저장 중 오류: {e}")
@@ -453,19 +453,19 @@ class Worker(QThread):
             self.stop_animation_signal.emit()
             self.log_signal.emit(f"Gerrit 데이터 수집 완료: 리뷰 {len(gerrit_reviews)}개, 댓글 {len(gerrit_comments)}개\n")
             
-            # 이메일 데이터 수집 추가
+            # 이메일 데이터 수집 (LLM 처리 없음)
             self.start_animation_signal.emit()
             self.log_signal.emit("이메일 데이터 수집 중...")
             try:
                 import email_processor
                 email_proc = email_processor.create_email_processor()
-                email_summaries = email_proc.process_outlook_emails()
+                email_data_list = email_proc.collect_email_data()  # 변경: 데이터만 수집
                 self.stop_animation_signal.emit()
-                self.log_signal.emit(f"이메일 데이터 수집 완료: {len(email_summaries)}개 요약\n")
+                self.log_signal.emit(f"이메일 데이터 수집 완료: {len(email_data_list)}개\n")
             except Exception as e:
                 self.stop_animation_signal.emit()
-                self.log_signal.emit(f"이메일 처리 중 오류: {e}\n")
-                email_summaries = []
+                self.log_signal.emit(f"이메일 데이터 수집 중 오류: {e}\n")
+                email_data_list = []
             
             # 수집된 모든 데이터 구성
             all_worklog_data = {
@@ -473,7 +473,7 @@ class Worker(QThread):
                 "confluence_data": confluence_data,
                 "gerrit_reviews": gerrit_reviews,
                 "gerrit_comments": gerrit_comments,
-                "email_summaries": email_summaries
+                "email_data": email_data_list  # 변경: 원시 이메일 데이터
             }
 
             # 디버깅용 파일 저장
@@ -498,7 +498,7 @@ class Worker(QThread):
                 self.log_signal.emit(f"   - Confluence: {len(confluence_data)}개")
                 self.log_signal.emit(f"   - Gerrit Reviews: {len(gerrit_reviews)}개")
                 self.log_signal.emit(f"   - Gerrit Comments: {len(gerrit_comments)}개")
-                self.log_signal.emit(f"   - Email Summaries: {len(email_summaries)}개")
+                self.log_signal.emit(f"   - Email Data: {len(email_data_list)}개")
                 
             except Exception as e:
                 self.log_signal.emit(f"⚠️ 디버깅 파일 저장 중 오류: {e}")
@@ -535,22 +535,23 @@ class AIWorker(QThread):
             processor = llm_processor.LLMProcessor(self.config)
             processor.start_new_session()  # 새로운 대화 세션 시작
             
-            # 이메일 처리에도 같은 LLM 프로세서 사용 (세션 공유)
-            self.log_signal.emit("📧 이메일 데이터를 같은 LLM 세션에서 처리합니다...")
+            # 이메일 데이터 LLM 요약 처리 (새로운 방식)
+            self.log_signal.emit("📧 이메일 데이터를 LLM으로 요약 중...")
             try:
-                import email_processor
-                email_proc = email_processor.create_email_processor(processor)  # LLM 세션 공유
-                email_summaries = email_proc.process_outlook_emails()
-                self.log_signal.emit(f"📧 이메일 처리 완료: {len(email_summaries)}개 요약")
-                
-                # 워크로그 데이터에 이메일 요약 추가
-                enhanced_worklog_data = self.worklog_data.copy()
-                enhanced_worklog_data['email_summaries'] = email_summaries
-                self.worklog_data = enhanced_worklog_data
-                
+                if 'email_data' in self.worklog_data and self.worklog_data['email_data']:
+                    email_summaries = processor.summarize_email_batch(self.worklog_data['email_data'])
+                    self.log_signal.emit(f"📧 이메일 요약 완료: {len(email_summaries)}개")
+                    
+                    # 워크로그 데이터에 이메일 요약 추가
+                    enhanced_worklog_data = self.worklog_data.copy()
+                    enhanced_worklog_data['email_summaries'] = email_summaries
+                    self.worklog_data = enhanced_worklog_data
+                else:
+                    self.log_signal.emit("📧 요약할 이메일 데이터가 없습니다.")
+                    
             except Exception as e:
-                self.log_signal.emit(f"⚠️ 이메일 처리 중 오류: {e}")
-                # 이메일 처리 실패해도 계속 진행
+                self.log_signal.emit(f"⚠️ 이메일 요약 중 오류: {e}")
+                # 이메일 요약 실패해도 계속 진행
             
             # Jira 이슈 개별 요약 처리
             self.log_signal.emit("🔍 Jira 이슈들을 개별적으로 LLM 요약 중...")

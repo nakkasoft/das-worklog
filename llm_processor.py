@@ -282,11 +282,17 @@ class LLMProcessor:
             f"{json.dumps(worklog_data['gerrit_comments'], ensure_ascii=False, indent=2)}\n\n"
         ])
         
-        # 이메일 데이터 추가 (있는 경우)
+        # 이메일 요약 데이터 추가 (LLM으로 요약된 경우)
         if 'email_summaries' in worklog_data and worklog_data['email_summaries']:
             prompt_parts.extend([
                 f"📧 발송 이메일 요약 데이터 ({len(worklog_data['email_summaries'])}개 항목):\n",
                 f"{json.dumps(worklog_data['email_summaries'], ensure_ascii=False, indent=2)}\n\n"
+            ])
+        # 원시 이메일 데이터 추가 (아직 요약되지 않은 경우)
+        elif 'email_data' in worklog_data and worklog_data['email_data']:
+            prompt_parts.extend([
+                f"📧 원시 이메일 데이터 ({len(worklog_data['email_data'])}개 항목):\n",
+                f"{json.dumps(worklog_data['email_data'], ensure_ascii=False, indent=2)}\n\n"
             ])
         
         prompt_parts.append("""
@@ -404,6 +410,214 @@ class LLMProcessor:
                 "error": str(e)
             }
     
+    def summarize_email_batch(self, email_data_list):
+        """
+        이메일 데이터 배열을 배치로 LLM 요약
+        
+        Args:
+            email_data_list (list): 이메일 데이터 배열
+            
+        Returns:
+            list: 요약된 이메일 데이터 배열
+        """
+        summarized_emails = []
+        
+        try:
+            if not email_data_list:
+                print("📧 요약할 이메일이 없습니다.")
+                return summarized_emails
+            
+            print(f"📧 총 {len(email_data_list)}개의 이메일을 순차적으로 요약합니다...")
+            
+            for i, email_data in enumerate(email_data_list, 1):
+                try:
+                    print(f"[{i}/{len(email_data_list)}] 이메일 요약 중: {email_data.get('subject', 'Unknown')[:50]}...")
+                    
+                    # 개별 이메일 요약
+                    summary_result = self.summarize_single_email(email_data)
+                    
+                    if summary_result['success']:
+                        summarized_emails.append({
+                            'subject': email_data.get('subject', ''),
+                            'to': email_data.get('to', ''),
+                            'date': email_data.get('date', ''),
+                            'ai_summary': summary_result['summary'],
+                            'original_data': email_data
+                        })
+                        print(f"✅ 이메일 요약 완료")
+                    else:
+                        print(f"❌ 이메일 요약 실패: {summary_result['error']}")
+                        # 실패한 경우에도 기본 정보는 포함
+                        summarized_emails.append({
+                            'subject': email_data.get('subject', ''),
+                            'to': email_data.get('to', ''),
+                            'date': email_data.get('date', ''),
+                            'ai_summary': f"요약 실패: {summary_result['error']}",
+                            'original_data': email_data
+                        })
+                        
+                except Exception as e:
+                    print(f"❌ 이메일 요약 중 오류: {e}")
+                    # 오류가 있어도 다른 이메일 계속 처리
+                    continue
+            
+            print(f"🎉 이메일 배치 요약 완료: {len(summarized_emails)}개 성공")
+            return summarized_emails
+            
+        except Exception as e:
+            raise Exception(f"이메일 배치 요약 중 오류: {e}")
+    
+    def summarize_single_email(self, email_data):
+        """
+        개별 이메일을 LLM으로 요약
+        
+        Args:
+            email_data (dict): 이메일 데이터
+            
+        Returns:
+            dict: 요약 결과
+        """
+        try:
+            # 이메일 요약용 프롬프트 생성
+            prompt = self._build_email_summary_prompt(email_data)
+            
+            # LLM 요약 요청
+            summary = self.continue_conversation(prompt)
+            
+            return {
+                "success": True,
+                "summary": summary,
+                "error": None
+            }
+            
+        except Exception as e:
+            return {
+                "success": False,
+                "issue_key": issue_data.get("issue_key", ""),
+                "summary": "",
+                "error": str(e)
+            }
+    
+    def summarize_email_batch(self, email_data_list):
+        """
+        이메일 데이터 배열을 배치로 LLM 요약
+        
+        Args:
+            email_data_list (list): 이메일 데이터 배열
+            
+        Returns:
+            list: 요약된 이메일 데이터 배열
+        """
+        summarized_emails = []
+        
+        try:
+            if not email_data_list:
+                print("📧 요약할 이메일이 없습니다.")
+                return summarized_emails
+            
+            print(f"📧 총 {len(email_data_list)}개의 이메일을 순차적으로 요약합니다...")
+            
+            for i, email_data in enumerate(email_data_list, 1):
+                try:
+                    print(f"[{i}/{len(email_data_list)}] 이메일 요약 중: {email_data.get('subject', 'Unknown')[:50]}...")
+                    
+                    # 개별 이메일 요약
+                    summary_result = self.summarize_single_email(email_data)
+                    
+                    if summary_result['success']:
+                        summarized_emails.append({
+                            'subject': email_data.get('subject', ''),
+                            'to': email_data.get('to', ''),
+                            'date': email_data.get('date', ''),
+                            'ai_summary': summary_result['summary'],
+                            'original_data': email_data
+                        })
+                        print(f"✅ 이메일 요약 완료")
+                    else:
+                        print(f"❌ 이메일 요약 실패: {summary_result['error']}")
+                        # 실패한 경우에도 기본 정보는 포함
+                        summarized_emails.append({
+                            'subject': email_data.get('subject', ''),
+                            'to': email_data.get('to', ''),
+                            'date': email_data.get('date', ''),
+                            'ai_summary': f"요약 실패: {summary_result['error']}",
+                            'original_data': email_data
+                        })
+                        
+                except Exception as e:
+                    print(f"❌ 이메일 요약 중 오류: {e}")
+                    # 오류가 있어도 다른 이메일 계속 처리
+                    continue
+            
+            print(f"🎉 이메일 배치 요약 완료: {len(summarized_emails)}개 성공")
+            return summarized_emails
+            
+        except Exception as e:
+            raise Exception(f"이메일 배치 요약 중 오류: {e}")
+    
+    def summarize_single_email(self, email_data):
+        """
+        개별 이메일을 LLM으로 요약
+        
+        Args:
+            email_data (dict): 이메일 데이터
+            
+        Returns:
+            dict: 요약 결과
+        """
+        try:
+            # 이메일 요약용 프롬프트 생성
+            prompt = self._build_email_summary_prompt(email_data)
+            
+            # LLM 요약 요청
+            summary = self.continue_conversation(prompt)
+            
+            return {
+                "success": True,
+                "summary": summary,
+                "error": None
+            }
+            
+        except Exception as e:
+            return {
+                "success": False,
+                "summary": "",
+                "error": str(e)
+            }
+    
+    def _build_email_summary_prompt(self, email_data):
+        """
+        이메일 요약용 프롬프트 생성
+        
+        Args:
+            email_data (dict): 이메일 데이터
+            
+        Returns:
+            str: 프롬프트 문자열
+        """
+        prompt = f"""다음 발신 이메일에 대해 주간 보고서에 포함할 간결한 요약을 작성해 주세요.
+
+## 이메일 정보
+- **제목**: {email_data.get('subject', 'N/A')}
+- **수신자**: {email_data.get('to', 'N/A')}
+- **참조**: {email_data.get('cc', 'N/A')}
+- **발송일**: {email_data.get('date', 'N/A')}
+
+## 이메일 본문
+{email_data.get('body_clean', '본문 없음')[:2000]}
+
+## 요청사항
+위 이메일 내용을 바탕으로 다음 형식으로 간결한 요약을 작성해 주세요:
+
+**[{email_data.get('subject', 'N/A')[:50]}]**
+- **수신자**: {email_data.get('to', 'N/A')[:50]}
+- **주요 내용**: {{2-3줄로 요약}}
+- **목적/요청사항**: {{전달하고자 한 핵심 내용}}
+
+한국어로 작성하며, 3-4줄 정도의 간결한 요약으로 작성해 주세요."""
+        
+        return prompt
+
     def _build_jira_issue_prompt(self, issue_data):
         """
         Jira 이슈 요약용 프롬프트 생성
