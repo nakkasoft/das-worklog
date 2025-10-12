@@ -246,7 +246,13 @@ def collect_jira_data(username, token, excluded_issues=None):
         user_data = r.json()
         
         # 최근 3일간의 활동 검색 (적절한 범위로 조정)
-        jql = "(updated >= -7d) AND (assignee = currentUser() OR reporter = currentUser() OR comment ~ currentUser() OR worklogAuthor = currentUser())"
+        #(updated >= -7d) AND (
+        #    assignee = currentUser() OR          -- 내가 담당자인 이슈
+        #    reporter = currentUser() OR          -- 내가 리포터인 이슈  
+        #    commenter = currentUser() OR         -- 내가 댓글을 작성한 이슈
+        #    worklogAuthor = currentUser()        -- 내가 워크로그를 작성한 이슈
+        #)
+        jql = "(updated >= -7d) AND (assignee = currentUser() OR reporter = currentUser() OR commenter = currentUser() OR worklogAuthor = currentUser())"
         #jql = "Key = CLUSTWORK-16128"
         
         params = {
