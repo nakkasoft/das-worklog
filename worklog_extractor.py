@@ -21,14 +21,14 @@ GERRIT_URLS = {
     "AS": "http://vgit.lge.com/as"
 }
 
-# 시간 설정 - 개발 테스트용 고정 날짜 범위 (2025년 8월 25일-29일)
+# 시간 설정 - 개발 테스트용 고정 날짜 범위 (2025년 9월 29일-10월 3일)
 # 운영 시에는 아래 두 줄을 주석 해제하고 고정 날짜 부분을 주석 처리
 # NOW_UTC = dt.datetime.now(dt.UTC).replace(tzinfo=None)
 # SINCE = NOW_UTC - dt.timedelta(days=3)
 
 # 개발 테스트용 고정 날짜 범위
-SINCE = dt.datetime(2025, 8, 25, 0, 0, 0)  # 2025년 8월 25일 00:00:00
-NOW_UTC = dt.datetime(2025, 8, 29, 23, 59, 59)  # 2025년 8월 29일 23:59:59
+SINCE = dt.datetime(2025, 9, 29, 0, 0, 0)  # 2025년 9월 29일 00:00:00
+NOW_UTC = dt.datetime(2025, 10, 3, 23, 59, 59)  # 2025년 10월 3일 23:59:59
 
 def iso_to_dt(s):
     """시간 문자열을 datetime 객체로 변환"""
@@ -106,14 +106,14 @@ def extract_text_from_adf(adf_content):
 
 def filter_my_comments(comments, username):
     """
-    댓글 목록에서 내가 작성한 댓글만 필터링
+    댓글 목록에서 내가 작성한 댓글만 필터링 (기간 내 작성된 댓글만)
     
     Args:
         comments (list): 전체 댓글 목록
         username (str): 현재 사용자명
         
     Returns:
-        list: 내가 작성한 댓글만 포함된 목록
+        list: 내가 작성한 댓글 중 기간 내 작성된 댓글만 포함된 목록
     """
     my_comments = []
     
@@ -123,20 +123,36 @@ def filter_my_comments(comments, username):
         
         # 정확한 username 매칭
         if comment_author_name == username:
-            my_comments.append(comment)
+            # 댓글 작성 날짜 확인
+            comment_created = comment.get("created", "")
+            if comment_created:
+                try:
+                    comment_date = iso_to_dt(comment_created)
+                    # 지정된 기간 내에 작성된 댓글인지 확인
+                    if SINCE <= comment_date <= NOW_UTC:
+                        my_comments.append(comment)
+                    else:
+                        print(f"    ⏰ 댓글 제외 (기간 외): {comment_date.strftime('%Y-%m-%d %H:%M:%S')}")
+                except Exception as e:
+                    print(f"    ❌ 댓글 날짜 파싱 오류: {comment_created} - {e}")
+                    # 날짜 파싱 실패 시에도 포함 (안전장치)
+                    my_comments.append(comment)
+            else:
+                # 날짜 정보가 없는 경우에도 포함
+                my_comments.append(comment)
         
     return my_comments
 
 def filter_my_worklogs(worklogs, username):
     """
-    워크로그 목록에서 내가 작성한 워크로그만 필터링
+    워크로그 목록에서 내가 작성한 워크로그만 필터링 (기간 내 작성된 워크로그만)
     
     Args:
         worklogs (list): 전체 워크로그 목록
         username (str): 현재 사용자명
         
     Returns:
-        list: 내가 작성한 워크로그만 포함된 목록
+        list: 내가 작성한 워크로그 중 기간 내 작성된 워크로그만 포함된 목록
     """
     my_worklogs = []
     
@@ -145,7 +161,23 @@ def filter_my_worklogs(worklogs, username):
         
         # 사용자명 매칭 확인 (대소문자 구분 없이)
         if username.lower() in worklog_author.lower():
-            my_worklogs.append(worklog)
+            # 워크로그 시작 날짜 확인
+            worklog_started = worklog.get("started", "")
+            if worklog_started:
+                try:
+                    worklog_date = iso_to_dt(worklog_started)
+                    # 지정된 기간 내에 작성된 워크로그인지 확인
+                    if SINCE <= worklog_date <= NOW_UTC:
+                        my_worklogs.append(worklog)
+                    else:
+                        print(f"    ⏰ 워크로그 제외 (기간 외): {worklog_date.strftime('%Y-%m-%d %H:%M:%S')}")
+                except Exception as e:
+                    print(f"    ❌ 워크로그 날짜 파싱 오류: {worklog_started} - {e}")
+                    # 날짜 파싱 실패 시에도 포함 (안전장치)
+                    my_worklogs.append(worklog)
+            else:
+                # 날짜 정보가 없는 경우에도 포함
+                my_worklogs.append(worklog)
         
     return my_worklogs
 
@@ -327,8 +359,8 @@ def collect_jira_data(username, token, excluded_issues=None):
         # jql = "(updated >= -7d) AND (assignee = currentUser() OR assignee was currentUser() OR reporter = currentUser() OR watcher = currentUser() OR worklogAuthor = currentUser())"
         
         # 개발 테스트용 고정 날짜 범위 JQL
-        #jql = "(updated >= '2025-08-25' AND updated <= '2025-08-29') AND (assignee = currentUser() OR assignee was currentUser() OR reporter = currentUser() OR watcher = currentUser() OR comment ~ currentUser() OR worklogAuthor = currentUser())"
-        jql = "key = VWICASCHN-33993"
+        jql = "(updated >= '2025-09-29' AND updated <= '2025-10-03') AND (assignee = currentUser() OR assignee was currentUser() OR reporter = currentUser() OR watcher = currentUser() OR comment ~ currentUser() OR worklogAuthor = currentUser())"
+        #jql = "key = VWICASCHN-33993"
 
         params = {
             "jql": jql,
@@ -549,8 +581,8 @@ def collect_confluence_data(username, token):
         # 운영 시에는 아래 라인을 사용
         # since_str = SINCE.strftime("%Y-%m-%d")
         
-        since_str = "2025-08-25"
-        end_str = "2025-08-29"
+        since_str = "2025-09-29"
+        end_str = "2025-10-03"
         params = {
             "cql": f"contributor = currentUser() AND lastModified >= '{since_str}' AND lastModified <= '{end_str}'",
             "limit": 500
@@ -632,8 +664,8 @@ def collect_gerrit_server_data(username, token, server="NA"):
     # 운영 시에는 아래 라인을 사용
     # since_str = SINCE.strftime("%Y-%m-%d")
     
-    since_str = "2025-08-25"
-    end_str = "2025-08-29"
+    since_str = "2025-09-29"
+    end_str = "2025-10-03"
     queries = [
         f"owner:{username} after:{since_str} before:{end_str}",  # 내가 작성한 리뷰
         f"reviewer:{username} after:{since_str} before:{end_str}",  # 내가 리뷰한 것들
@@ -938,7 +970,7 @@ def main():
     메인 실행 함수 - 실제 토큰과 사용자명으로 수정하여 사용
     """
     print("=== Jira & Confluence & Gerrit 통합 활동 추출기 ===")
-    print(f"수집 기간: 개발 테스트용 고정 범위 (2025-08-25 ~ 2025-08-29)")
+    print(f"수집 기간: 개발 테스트용 고정 범위 (2025-09-29 ~ 2025-10-03)")
     # 운영 시에는 아래 라인을 사용
     # print(f"수집 기간: 최근 3일 ({SINCE.strftime('%Y-%m-%d')} 이후)")
     
