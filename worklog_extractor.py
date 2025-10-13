@@ -21,9 +21,14 @@ GERRIT_URLS = {
     "AS": "http://vgit.lge.com/as"
 }
 
-# 시간 설정
-NOW_UTC = dt.datetime.now(dt.UTC).replace(tzinfo=None)
-SINCE = NOW_UTC - dt.timedelta(days=3)  # 3일로 설정하여 적절한 수의 티켓 분석
+# 시간 설정 - 개발 테스트용 고정 날짜 범위 (2025년 8월 25일-29일)
+# 운영 시에는 아래 두 줄을 주석 해제하고 고정 날짜 부분을 주석 처리
+# NOW_UTC = dt.datetime.now(dt.UTC).replace(tzinfo=None)
+# SINCE = NOW_UTC - dt.timedelta(days=3)
+
+# 개발 테스트용 고정 날짜 범위
+SINCE = dt.datetime(2025, 8, 25, 0, 0, 0)  # 2025년 8월 25일 00:00:00
+NOW_UTC = dt.datetime(2025, 8, 29, 23, 59, 59)  # 2025년 8월 29일 23:59:59
 
 def iso_to_dt(s):
     """시간 문자열을 datetime 객체로 변환"""
@@ -99,6 +104,51 @@ def extract_text_from_adf(adf_content):
 # JIRA 데이터 수집 함수
 # =============================================================================
 
+def filter_my_comments(comments, username):
+    """
+    댓글 목록에서 내가 작성한 댓글만 필터링
+    
+    Args:
+        comments (list): 전체 댓글 목록
+        username (str): 현재 사용자명
+        
+    Returns:
+        list: 내가 작성한 댓글만 포함된 목록
+    """
+    my_comments = []
+    
+    for comment in comments:
+        # author_name 필드로 정확한 username 비교
+        comment_author_name = comment.get("author_name", "")
+        
+        # 정확한 username 매칭
+        if comment_author_name == username:
+            my_comments.append(comment)
+        
+    return my_comments
+
+def filter_my_worklogs(worklogs, username):
+    """
+    워크로그 목록에서 내가 작성한 워크로그만 필터링
+    
+    Args:
+        worklogs (list): 전체 워크로그 목록
+        username (str): 현재 사용자명
+        
+    Returns:
+        list: 내가 작성한 워크로그만 포함된 목록
+    """
+    my_worklogs = []
+    
+    for worklog in worklogs:
+        worklog_author = worklog.get("author", "Unknown")
+        
+        # 사용자명 매칭 확인 (대소문자 구분 없이)
+        if username.lower() in worklog_author.lower():
+            my_worklogs.append(worklog)
+        
+    return my_worklogs
+
 def get_jira_issue_details(username, token, issue_key):
     """
     특정 Jira 이슈의 상세 정보와 댓글을 가져오기
@@ -127,23 +177,40 @@ def get_jira_issue_details(username, token, issue_key):
         response.raise_for_status()
         issue_data = response.json()
         
-        # 댓글 정보 추출
-        comments = []
-        if "comments" in issue_data.get("fields", {}):
-            for comment in issue_data["fields"]["comments"]["comments"]:
-                comment_info = {
-                    "author": comment.get("author", {}).get("displayName", "Unknown"),
-                    "created": comment.get("created", ""),
-                    "updated": comment.get("updated", ""),
-                    "body": comment.get("body", "")
-                }
-                # ADF 형태인 경우 텍스트 추출
-                if isinstance(comment_info["body"], dict):
-                    comment_info["body"] = extract_text_from_adf(comment_info["body"])
-                comments.append(comment_info)
+        print(f"🔍 {issue_key} 이슈 댓글 수집:")
         
-        # 워크로그 정보 추출
-        worklogs = []
+        # 댓글 정보 추출 (내가 작성한 댓글만)
+        all_comments = []
+        
+        # comments 필드 확인 (expand로 가져온 경우)
+        if "fields" in issue_data and "comment" in issue_data["fields"]:
+            comment_data = issue_data["fields"]["comment"]
+            
+            if "comments" in comment_data:
+                for comment in comment_data["comments"]:
+                    comment_info = {
+                        "author": comment.get("author", {}).get("displayName", "Unknown"),
+                        "author_name": comment.get("author", {}).get("name", ""),
+                        "created": comment.get("created", ""),
+                        "updated": comment.get("updated", ""),
+                        "body": comment.get("body", "")
+                    }
+                    # ADF 형태인 경우 텍스트 추출
+                    if isinstance(comment_info["body"], dict):
+                        comment_info["body"] = extract_text_from_adf(comment_info["body"])
+                    all_comments.append(comment_info)
+        
+        print(f"  - 전체 댓글 수: {len(all_comments)}")
+        
+        # 내가 작성한 댓글만 필터링
+        my_comments = filter_my_comments(all_comments, username)
+        print(f"  - 내 댓글 수: {len(my_comments)}")
+        
+        # 내가 작성한 댓글만 필터링
+        my_comments = filter_my_comments(all_comments, username)
+        
+        # 워크로그 정보 추출 (내가 작성한 워크로그만)
+        all_worklogs = []
         if "worklog" in issue_data.get("fields", {}):
             for worklog in issue_data["fields"]["worklog"]["worklogs"]:
                 worklog_info = {
@@ -156,7 +223,10 @@ def get_jira_issue_details(username, token, issue_key):
                 # ADF 형태인 경우 텍스트 추출
                 if isinstance(worklog_info["comment"], dict):
                     worklog_info["comment"] = extract_text_from_adf(worklog_info["comment"])
-                worklogs.append(worklog_info)
+                all_worklogs.append(worklog_info)
+        
+        # 내가 작성한 워크로그만 필터링
+        my_worklogs = filter_my_worklogs(all_worklogs, username)
         
         # 첨부파일 정보 추출
         attachments = []
@@ -206,11 +276,15 @@ def get_jira_issue_details(username, token, issue_key):
             "created": fields.get("created", ""),
             "updated": fields.get("updated", ""),
             "resolutiondate": fields.get("resolutiondate", ""),
-            "comments": comments,
-            "worklogs": worklogs,
+            "comments": my_comments,  # 내가 작성한 댓글만
+            "worklogs": my_worklogs,  # 내가 작성한 워크로그만
             "attachments": attachments,
             "changelog": changelog,
-            "url": f"{JIRA_BASE}/browse/{issue_data.get('key', '')}"
+            "url": f"{JIRA_BASE}/browse/{issue_data.get('key', '')}",
+            "total_comments": len(all_comments),  # 전체 댓글 수
+            "my_comments_count": len(my_comments),  # 내가 작성한 댓글 수
+            "total_worklogs": len(all_worklogs),  # 전체 워크로그 수  
+            "my_worklogs_count": len(my_worklogs)  # 내가 작성한 워크로그 수
         }
         
         return detailed_issue
@@ -245,14 +319,21 @@ def collect_jira_data(username, token, excluded_issues=None):
         r.raise_for_status()
         user_data = r.json()
         
-        # 최근 3일간의 활동 검색 (적절한 범위로 조정)
-        # commenter 필드는 지원되지 않으므로 comment 텍스트 검색 사용
-        jql = "(updated >= -7d) AND (assignee = currentUser() OR reporter = currentUser() OR comment ~ currentUser() OR worklogAuthor = currentUser())"
-        #jql = "Key = CLUSTWORK-16128"
+        # 개발 테스트용 고정 날짜 범위 검색 (2025년 8월 25일-29일)
+        # 1. 현재 assign 되어 있는 티켓: assignee = currentUser()
+        # 2. 과거에 assign 되었던 티켓: assignee was currentUser() 
+        # 3. watcher에 내가 있는 경우: watcher = currentUser()
+        # 운영 시에는 아래 jql을 사용하고 고정 날짜 jql을 주석 처리
+        # jql = "(updated >= -7d) AND (assignee = currentUser() OR assignee was currentUser() OR reporter = currentUser() OR watcher = currentUser() OR worklogAuthor = currentUser())"
         
+        # 개발 테스트용 고정 날짜 범위 JQL
+        #jql = "(updated >= '2025-08-25' AND updated <= '2025-08-29') AND (assignee = currentUser() OR assignee was currentUser() OR reporter = currentUser() OR watcher = currentUser() OR comment ~ currentUser() OR worklogAuthor = currentUser())"
+        jql = "key = VWICASCHN-33993"
+
         params = {
             "jql": jql,
             "fields": "key,summary,updated,status,assignee,reporter,created,description",
+            "expand": "comments",
             "maxResults": 500
         }
         
@@ -321,33 +402,45 @@ def collect_jira_data(username, token, excluded_issues=None):
                     
                     # 이슈 상세 정보 가져오기 (댓글, 워크로그 등 포함)
                     detailed_issue = get_jira_issue_details(username, token, issue_key)
-                    
+                    #print(f"🔍 {issue_key} 상세 정보: {detailed_issue}")
+
                     if detailed_issue:
-                        # 상세 정보가 있는 경우 이를 활동 목록에 추가
-                        activities.append({
-                            "source": "jira",
-                            "type": "detailed_issue",
-                            "issue_key": detailed_issue["key"],
-                            "summary": detailed_issue["summary"],
-                            "description": detailed_issue["description"],
-                            "status": detailed_issue["status"],
-                            "assignee": detailed_issue["assignee"],
-                            "reporter": detailed_issue["reporter"],
-                            "priority": detailed_issue["priority"],
-                            "created": detailed_issue["created"],
-                            "updated": detailed_issue["updated"],
-                            "resolutiondate": detailed_issue["resolutiondate"],
-                            "comments": detailed_issue["comments"],
-                            "worklogs": detailed_issue["worklogs"],
-                            "attachments": detailed_issue["attachments"],
-                            "changelog": detailed_issue["changelog"],
-                            "url": detailed_issue["url"],
-                            "comment_count": len(detailed_issue["comments"]),
-                            "worklog_count": len(detailed_issue["worklogs"]),
-                            "attachment_count": len(detailed_issue["attachments"])
-                        })
+                        # 내가 작성한 댓글이나 워크로그가 있는 경우만 포함
+                        has_my_activity = (
+                            detailed_issue.get("my_comments_count", 0) > 0 or 
+                            detailed_issue.get("my_worklogs_count", 0) > 0
+                        )
                         
-                        print(f"✅ {issue_key} 상세 정보 수집 완료 (댓글: {len(detailed_issue['comments'])}개, 워크로그: {len(detailed_issue['worklogs'])}개)")
+                        if has_my_activity:
+                            # 상세 정보가 있고 내 활동이 있는 경우에만 활동 목록에 추가
+                            activities.append({
+                                "source": "jira",
+                                "type": "detailed_issue",
+                                "issue_key": detailed_issue["key"],
+                                "summary": detailed_issue["summary"],
+                                "description": detailed_issue["description"],
+                                "status": detailed_issue["status"],
+                                "assignee": detailed_issue["assignee"],
+                                "reporter": detailed_issue["reporter"],
+                                "priority": detailed_issue["priority"],
+                                "created": detailed_issue["created"],
+                                "updated": detailed_issue["updated"],
+                                "resolutiondate": detailed_issue["resolutiondate"],
+                                "comments": detailed_issue["comments"],  # 내가 작성한 댓글만
+                                "worklogs": detailed_issue["worklogs"],  # 내가 작성한 워크로그만
+                                "attachments": detailed_issue["attachments"],
+                                "changelog": detailed_issue["changelog"],
+                                "url": detailed_issue["url"],
+                                "comment_count": detailed_issue["my_comments_count"],  # 내가 작성한 댓글 수
+                                "worklog_count": detailed_issue["my_worklogs_count"],  # 내가 작성한 워크로그 수
+                                "attachment_count": len(detailed_issue["attachments"]),
+                                "total_comments": detailed_issue["total_comments"],  # 전체 댓글 수 (참고용)
+                                "total_worklogs": detailed_issue["total_worklogs"]  # 전체 워크로그 수 (참고용)
+                            })
+                            
+                            print(f"✅ {issue_key} 상세 정보 수집 완료 (내 댓글: {detailed_issue['my_comments_count']}/{detailed_issue['total_comments']}개, 내 워크로그: {detailed_issue['my_worklogs_count']}/{detailed_issue['total_worklogs']}개)")
+                        else:
+                            print(f"⏭️ {issue_key} 건너뜀 - 내가 작성한 댓글/워크로그 없음 (전체 댓글: {detailed_issue.get('total_comments', 0)}개, 전체 워크로그: {detailed_issue.get('total_worklogs', 0)}개)")
                     else:
                         # 상세 정보 가져오기 실패한 경우 기본 정보만 추가
                         print(f"⚠️ {issue_key} 상세 정보 수집 실패, 기본 정보만 사용")
@@ -452,9 +545,14 @@ def collect_confluence_data(username, token):
     }
     
     try:
-        since_str = SINCE.strftime("%Y-%m-%d")
+        # 개발 테스트용 고정 날짜 범위 (2025년 8월 25일-29일)
+        # 운영 시에는 아래 라인을 사용
+        # since_str = SINCE.strftime("%Y-%m-%d")
+        
+        since_str = "2025-08-25"
+        end_str = "2025-08-29"
         params = {
-            "cql": f"contributor = currentUser() AND lastModified >= '{since_str}'",
+            "cql": f"contributor = currentUser() AND lastModified >= '{since_str}' AND lastModified <= '{end_str}'",
             "limit": 500
         }
         
@@ -530,12 +628,16 @@ def collect_gerrit_server_data(username, token, server="NA"):
     all_reviews = []
     all_comments = []
     
-    # 최근 1일간의 검색 쿼리들
-    since_str = SINCE.strftime("%Y-%m-%d")
+    # 개발 테스트용 고정 날짜 범위 검색 (2025년 8월 25일-29일)
+    # 운영 시에는 아래 라인을 사용
+    # since_str = SINCE.strftime("%Y-%m-%d")
+    
+    since_str = "2025-08-25"
+    end_str = "2025-08-29"
     queries = [
-        f"owner:{username} after:{since_str}",  # 내가 작성한 리뷰
-        f"reviewer:{username} after:{since_str}",  # 내가 리뷰한 것들
-        f"commentby:{username} after:{since_str}"  # 내가 댓글 단 것들
+        f"owner:{username} after:{since_str} before:{end_str}",  # 내가 작성한 리뷰
+        f"reviewer:{username} after:{since_str} before:{end_str}",  # 내가 리뷰한 것들
+        f"commentby:{username} after:{since_str} before:{end_str}"  # 내가 댓글 단 것들
     ]
     
     processed_changes = set()  # 중복 방지
@@ -836,7 +938,9 @@ def main():
     메인 실행 함수 - 실제 토큰과 사용자명으로 수정하여 사용
     """
     print("=== Jira & Confluence & Gerrit 통합 활동 추출기 ===")
-    print(f"수집 기간: 최근 3일 ({SINCE.strftime('%Y-%m-%d')} 이후)")
+    print(f"수집 기간: 개발 테스트용 고정 범위 (2025-08-25 ~ 2025-08-29)")
+    # 운영 시에는 아래 라인을 사용
+    # print(f"수집 기간: 최근 3일 ({SINCE.strftime('%Y-%m-%d')} 이후)")
     
     # 실제 사용자 정보 설정 (여기서 수정하여 사용)
     USERNAME = ""
