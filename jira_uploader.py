@@ -2,6 +2,7 @@ import os
 import json
 import requests
 from datetime import datetime
+import re  # 추가: Markdown 변환에 사용
 
 
 class JiraUploader:
@@ -208,12 +209,83 @@ class JiraUploader:
         except Exception as e:
             print(f"⚠️ 첨부파일 업로드 실패: {e}")
     
+    def markdown_to_jira(self, md: str) -> str:
+        """Markdown을 Jira Wiki Markup(Wiki 스타일)으로 단순 변환.
+        고급 Markdown (복잡한 nested list, 혼합 표 등)은 최소 규칙만 처리.
+        원본 보존이 필요하면 별도로 첨부하고, description에는 변환본 사용.
+        """
+        lines = md.splitlines()
+        out = []
+        i = 0
+        while i < len(lines):
+            line = lines[i]
+            # 코드 블록 처리 ```lang ... ``` -> {code:lang} ... {code}
+            if line.strip().startswith("```"):
+                lang = line.strip()[3:].strip()
+                out.append(f"{{code:{lang}}}" if lang else "{code}")
+                i += 1
+                while i < len(lines) and not lines[i].strip().startswith("```"):
+                    out.append(lines[i])
+                    i += 1
+                if i < len(lines):  # closing ```
+                    out.append("{code}")
+                    i += 1
+                continue
+            # 표 블록 탐지: '|' 로 시작 (헤더 줄 이후 구분선 포함)
+            if line.strip().startswith('|') and '|' in line.strip()[1:]:
+                table_block = []
+                while i < len(lines) and lines[i].strip().startswith('|'):
+                    table_block.append(lines[i])
+                    i += 1
+                # 파싱
+                if table_block:
+                    # 헤더 줄
+                    header = table_block[0]
+                    header_cells = [c.strip() for c in header.strip().strip('|').split('|')]
+                    out.append('|| ' + ' || '.join(header_cells) + ' ||')
+                    # 나머지 (두번째 줄이 --- 구분선이면 skip)
+                    body_rows = table_block[1:]
+                    if body_rows and re.match(r'^\|\s*[-: ]+\|', body_rows[0]):
+                        body_rows = body_rows[1:]
+                    for row in body_rows:
+                        cells = [c.strip() for c in row.strip().strip('|').split('|')]
+                        out.append('| ' + ' | '.join(cells) + ' |')
+                continue
+            # 헤더 변환 ###### -> h6.
+            m = re.match(r'^(#{1,6})\s+(.*)$', line)
+            if m:
+                level = len(m.group(1))
+                text = m.group(2).strip()
+                out.append(f"h{level}. {text}")
+                i += 1
+                continue
+            # 수평선 --- -> ----
+            if re.match(r'^\s*---+\s*$', line):
+                out.append('----')
+                i += 1
+                continue
+            # 순서 없는 리스트 - / * -> *
+            if re.match(r'^\s*[-*]\s+.+', line):
+                out.append(re.sub(r'^\s*[-*]\s+', lambda m: ' ' * (len(m.group(0)) - len(m.group(0).lstrip())) + '* ', line))
+                i += 1
+                continue
+            # 순서 있는 리스트 1. -> #
+            if re.match(r'^\s*\d+\.\s+.+', line):
+                out.append(re.sub(r'^\s*\d+\.\s+', '# ', line))
+                i += 1
+                continue
+            # 굵게 **text** -> *text*
+            line = re.sub(r'\*\*(.+?)\*\*', r'*\1*', line)
+            out.append(line)
+            i += 1
+        return '\n'.join(out)
+
     def upload_worklog_result(self, summary_content):
         """
         워크로그 결과를 Jira 서브태스크로 업로드
         
         Args:
-            summary_content (str): 주간 보고서 내용
+            summary_content (str): 주간 보고서 내용(Markdown 원본)
             
         Returns:
             dict: 업로드 결과
@@ -223,20 +295,18 @@ class JiraUploader:
             today = datetime.now().strftime("%Y-%m-%d")
             summary = f"주간 보고서 - {today} ({self.username})"
             
-            # 설명 생성 - 전체 주간 보고서 내용 포함
-            description = f"""자동 생성된 주간 보고서입니다.
-
-작성자: {self.username}
-생성일: {datetime.now().strftime("%Y-%m-%d %H:%M:%S")}
-
-{summary_content}
-"""
+            # Markdown -> Jira 변환 (description 전용)
+            jira_body = self.markdown_to_jira(summary_content)
+            description = (f"자동 생성된 주간 보고서입니다.\n\n"\
+                           f"작성자: {self.username}\n"\
+                           f"생성일: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}\n\n"\
+                           f"{jira_body}")
             
             # 서브태스크 생성
             result = self.create_subtask(
                 summary=summary,
                 description=description,
-                attachment_content=summary_content
+                attachment_content=summary_content  # 첨부에는 원본 Markdown 유지
             )
             
             return result
