@@ -360,7 +360,6 @@ def collect_jira_data(username, token, excluded_issues=None):
         
         # 개발 테스트용 고정 날짜 범위 JQL
         jql = "(updated >= '2025-09-29' AND updated <= '2025-10-03') AND (assignee = currentUser() OR assignee was currentUser() OR reporter = currentUser() OR watcher = currentUser() OR comment ~ currentUser() OR worklogAuthor = currentUser())"
-        #jql = "key = VWICASCHN-33993"
 
         params = {
             "jql": jql,

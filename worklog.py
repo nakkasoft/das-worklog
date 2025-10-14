@@ -184,7 +184,6 @@ class MyApp(QtWidgets.QMainWindow):
 
     def processFetchedData(self, data):
         """Process the fetched data and generate OpenAI completion."""
-        self.updateLogs("주간 보고 작성중...")
         
         try:
             username = self.config["username"]
@@ -222,7 +221,7 @@ class MyApp(QtWidgets.QMainWindow):
         
         # Jira 서브태스크 URL 표시
         if 'subtask_url' in result:
-            self.updateLogs("📋 생성된 Jira 서브태스크:")
+            self.updateLogs("📋 생성된 주간 보고서 Link:")
             self.updateLogs(f"  🔗 {result['subtask_url']}")
         elif 'upload_error' in result:
             self.updateLogs(f"❌ Jira 업로드 실패: {result['upload_error']}")
@@ -430,6 +429,7 @@ class Worker(QThread):
             print(f"⚠️ user_config.json 읽기 실패: {e}")
 
     def run(self):
+        self.log_signal.emit(f"Version: 1.0.0")
         self.log_signal.emit(f"사용자: {self.username}")
         self.log_signal.emit("설정 파일에서 토큰들이 로드되었습니다.\n")
 
@@ -503,7 +503,7 @@ class Worker(QThread):
             except Exception as e:
                 self.log_signal.emit(f"⚠️ 디버깅 파일 저장 중 오류: {e}")
             
-            self.log_signal.emit("=== 모든 데이터 수집 완료 ===")
+            self.log_signal.emit("\n=== 모든 데이터 수집 완료 ===\n")
 
             # Emit the fetched data
             self.data_signal.emit(all_worklog_data)
@@ -528,15 +528,14 @@ class AIWorker(QThread):
     def run(self):
         try:
             self.start_animation_signal.emit()  # Start the loading animation
-            self.log_signal.emit("AI 처리를 시작합니다...")  # Log the start of AI processing
-            self.log_signal.emit("🔄 새로운 LLM 세션을 시작합니다...")
+            self.log_signal.emit("🔄 AI 처리를 시작합니다...")  # Log the start of AI processing
             
             # LLMProcessor 생성 및 새 세션 시작
             processor = llm_processor.LLMProcessor(self.config)
             processor.start_new_session()  # 새로운 대화 세션 시작
             
             # 이메일 데이터 LLM 요약 처리 (새로운 방식)
-            self.log_signal.emit("📧 이메일 데이터를 LLM으로 요약 중...")
+            self.log_signal.emit("📧 이메일 데이터 요약 중...")
             try:
                 if 'email_data' in self.worklog_data and self.worklog_data['email_data']:
                     email_summaries = processor.summarize_email_batch(self.worklog_data['email_data'])
@@ -571,7 +570,6 @@ class AIWorker(QThread):
                 for i, issue in enumerate(jira_issues, 1):
                     try:
                         issue_key = issue.get('issue_key', 'Unknown')
-                        self.log_signal.emit(f"[{i}/{len(jira_issues)}] {issue_key} 요약 중...")
                         
                         # 개별 이슈 요약
                         summary_result = processor.summarize_jira_issue(issue)
@@ -582,7 +580,7 @@ class AIWorker(QThread):
                                 'summary': summary_result['summary'],
                                 'original_data': issue
                             })
-                            self.log_signal.emit(f"✅ {issue_key} 요약 완료")
+                            self.log_signal.emit(f"✅ [{i}/{len(jira_issues)}] {issue_key} 요약 완료...")
                         else:
                             self.log_signal.emit(f"❌ {issue_key} 요약 실패: {summary_result['error']}")
                             
@@ -597,6 +595,8 @@ class AIWorker(QThread):
                 self.log_signal.emit(f"🎉 Jira 이슈 개별 요약 완료: {len(jira_summaries)}개 성공")
             else:
                 self.log_signal.emit("📋 요약할 Jira 이슈가 없습니다.")
+
+            self.log_signal.emit("\n 모든 Data 정리를 완료 했습니다. 보고서 작성중 입니다. \n해당 과정은 다소 시간이 걸릴 수 있습니다. 잠시만 기다려 주세요.")
             
             # 워크로그 데이터와 MD 파일을 함께 처리
             result = processor.process_worklog_with_md_file(

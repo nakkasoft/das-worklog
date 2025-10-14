@@ -238,6 +238,9 @@ class LLMProcessor:
         2. 주요 처리 Issue나 주요 잔여 Issue는 Issue의 제목을 넣어 주고, Issue의 내용을 간략하게 설명해 주세요. 1~2줄 정도가 좋을 것 같습니다.
         3. 내가 해당 Issue에 대해서 수행한 작업들을 Comment Base로 작성해 주세요.
         4. 기술 관련 Issue라면 어느 정도 기술관련 내용이 들어가면 좋을 것 같습니다.
+        5. Ticket의 상태가 Resolve, Resolved, Close, Closed, Inquiret to Reporter 인 경우는 처리 완료로 분류 된다.
+        6. Jira ticket의 활동내용은 너무 축약하지 말고 자세히 작성해 주세요.
+        7. 개수가 0인 항목은 보고서에서 생략해 주세요.
 
         """
         
