@@ -209,6 +209,93 @@ class JiraUploader:
         except Exception as e:
             print(f"⚠️ 첨부파일 업로드 실패: {e}")
     
+    def upload_log_files_and_cleanup(self, issue_key, log_dir="./log"):
+        """
+        지정된 디렉토리의 log 파일들을 Jira 이슈에 첨부하고 로컬에서 삭제
+        
+        Args:
+            issue_key (str): 이슈 키
+            log_dir (str): log 파일이 저장된 디렉토리 경로
+        """
+        print(f"🚀 upload_log_files_and_cleanup 함수 시작")
+        print(f"   이슈 키: {issue_key}")
+        print(f"   log 디렉토리: {log_dir}")
+        print(f"   절대 경로: {os.path.abspath(log_dir)}")
+        
+        if not os.path.exists(log_dir):
+            print(f"📂 Log 디렉토리가 존재하지 않음: {log_dir}")
+            return
+        
+        # log 디렉토리에서 파일 목록 가져오기
+        log_files = []
+        for file in os.listdir(log_dir):
+            file_path = os.path.join(log_dir, file)
+            if os.path.isfile(file_path):
+                log_files.append(file_path)
+        
+        print(f"📂 발견된 파일 목록: {[os.path.basename(f) for f in log_files]}")
+        
+        if not log_files:
+            print(f"📂 업로드할 log 파일이 없음: {log_dir}")
+            return
+        
+        print(f"📎 {len(log_files)}개의 log 파일을 업로드 중...")
+        
+        uploaded_files = []
+        failed_files = []
+        
+        for file_path in log_files:
+            try:
+                filename = os.path.basename(file_path)
+                
+                # 파일 내용 읽기
+                with open(file_path, 'r', encoding='utf-8') as f:
+                    content = f.read()
+                
+                # Jira에 첨부파일 업로드
+                headers = {
+                    "Authorization": f"Bearer {self.token}",
+                    "X-Atlassian-Token": "no-check"
+                }
+                
+                url = f"{self.base_url}/rest/api/2/issue/{issue_key}/attachments"
+                
+                with open(file_path, 'rb') as f:
+                    # 파일 확장자에 따른 MIME 타입 설정
+                    if filename.endswith('.md'):
+                        mime_type = 'text/markdown'
+                    elif filename.endswith('.txt'):
+                        mime_type = 'text/plain'
+                    elif filename.endswith('.json'):
+                        mime_type = 'application/json'
+                    else:
+                        mime_type = 'application/octet-stream'
+                    
+                    files = {'file': (filename, f, mime_type)}
+                    response = requests.post(url, headers=headers, files=files)
+                    response.raise_for_status()
+                
+                print(f"  ✅ 업로드 완료: {filename}")
+                uploaded_files.append(file_path)
+                
+            except Exception as e:
+                print(f"  ❌ 업로드 실패: {filename} - {e}")
+                failed_files.append(file_path)
+        
+        # 업로드 성공한 파일들만 삭제
+        for file_path in uploaded_files:
+            try:
+                os.remove(file_path)
+                print(f"  🗑️ 삭제 완료: {os.path.basename(file_path)}")
+            except Exception as e:
+                print(f"  ⚠️ 삭제 실패: {os.path.basename(file_path)} - {e}")
+        
+        # 결과 요약
+        if uploaded_files:
+            print(f"📎 총 {len(uploaded_files)}개 파일 업로드 및 삭제 완료")
+        if failed_files:
+            print(f"❌ 총 {len(failed_files)}개 파일 업로드 실패")
+    
     def markdown_to_jira(self, md: str) -> str:
         """Markdown을 Jira Wiki Markup(Wiki 스타일)으로 단순 변환.
         고급 Markdown (복잡한 nested list, 혼합 표 등)은 최소 규칙만 처리.

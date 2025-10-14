@@ -223,10 +223,39 @@ class MyApp(QtWidgets.QMainWindow):
         if 'subtask_url' in result:
             self.updateLogs("📋 생성된 주간 보고서 Link:")
             self.updateLogs(f"  🔗 {result['subtask_url']}")
+            
+            # 서브태스크가 성공적으로 생성된 경우 log 파일 업로드 및 삭제
+            issue_key = result.get('issue_key')
+            print(f"🔍 디버그: issue_key = {issue_key}")
+            if issue_key:
+                try:
+                    # user_config.json에서 Jira 설정 읽기
+                    with open("user_config.json", "r", encoding="utf-8") as f:
+                        config = json.load(f)
+                    
+                    print(f"🔍 디버그: Jira 사용자 = {config.get('username', 'NOT_FOUND')}")
+                    
+                    # JiraUploader 인스턴스 생성
+                    jira_uploader_instance = jira_uploader.JiraUploader(config)
+                    
+                    print("🔍 디버그: JiraUploader 인스턴스 생성 완료")
+                    
+                    # log 파일 업로드 및 삭제
+                    jira_uploader_instance.upload_log_files_and_cleanup(issue_key, "./log")
+                    
+                    print("🔍 디버그: upload_log_files_and_cleanup 호출 완료")
+                    
+                except Exception as e:
+                    print(f"⚠️ Log 파일 처리 실패: {e}")
+                    import traceback
+                    print(f"🔍 디버그: 전체 에러 스택: {traceback.format_exc()}")
+            else:
+                print("🔍 디버그: issue_key가 없어서 log 파일 업로드를 건너뜀")
+            
         elif 'upload_error' in result:
-            self.updateLogs(f"❌ Jira 업로드 실패: {result['upload_error']}")
+            print(f"❌ Jira 업로드 실패: {result['upload_error']}")
         elif 'upload_info' in result:
-            self.updateLogs(f"⚠️ {result['upload_info']}")
+            print(f"⚠️ {result['upload_info']}")
         else:
             self.updateLogs("📋 결과는 Jira 서브태스크에 업로드됩니다.")
 
@@ -477,7 +506,7 @@ class Worker(QThread):
             }
 
             # 디버깅용 파일 저장
-            self.log_signal.emit("디버깅용 데이터 파일 저장 중...")
+            #self.log_signal.emit("디버깅용 데이터 파일 저장 중...")
             try:
                 from datetime import datetime
                 
@@ -485,7 +514,7 @@ class Worker(QThread):
                 log_dir = "./log"
                 if not os.path.exists(log_dir):
                     os.makedirs(log_dir)
-                    self.log_signal.emit(f"📁 로그 폴더 생성: {log_dir}")
+                    #self.log_signal.emit(f"📁 로그 폴더 생성: {log_dir}")
                 
                 timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
                 debug_filename = os.path.join(log_dir, f"worklog_debug_{timestamp}.json")
@@ -493,7 +522,7 @@ class Worker(QThread):
                 with open(debug_filename, 'w', encoding='utf-8') as f:
                     json.dump(all_worklog_data, f, ensure_ascii=False, indent=2)
                 
-                self.log_signal.emit(f"✅ 디버깅 데이터 저장 완료: {debug_filename}")
+                #self.log_signal.emit(f"✅ 디버깅 데이터 저장 완료: {debug_filename}")
                 self.log_signal.emit(f"   - JIRA: {len(jira_data)}개")
                 self.log_signal.emit(f"   - Confluence: {len(confluence_data)}개")
                 self.log_signal.emit(f"   - Gerrit Reviews: {len(gerrit_reviews)}개")
@@ -633,9 +662,11 @@ class AIWorker(QThread):
                         
                         if upload_result['success']:
                             subtask_url = upload_result.get('url', 'URL 정보 없음')  # 'url' 키 사용
+                            issue_key = upload_result.get('issue_key')  # issue_key 추가
                             self.log_signal.emit(f"✅ Jira 업로드 완료: {subtask_url}")
-                            # 결과에 서브태스크 URL 정보 추가
+                            # 결과에 서브태스크 URL 및 issue_key 정보 추가
                             result['subtask_url'] = subtask_url
+                            result['issue_key'] = issue_key  # issue_key 추가
                         else:
                             error_msg = upload_result.get('error', '알 수 없는 오류')
                             self.log_signal.emit(f"❌ Jira 업로드 실패: {error_msg}")

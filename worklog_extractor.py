@@ -359,7 +359,7 @@ def collect_jira_data(username, token, excluded_issues=None):
         # jql = "(updated >= -7d) AND (assignee = currentUser() OR assignee was currentUser() OR reporter = currentUser() OR watcher = currentUser() OR worklogAuthor = currentUser())"
         
         # 개발 테스트용 고정 날짜 범위 JQL
-        jql = "(updated >= '2025-09-29' AND updated <= '2025-10-03') AND (assignee = currentUser() OR assignee was currentUser() OR reporter = currentUser() OR watcher = currentUser() OR comment ~ currentUser() OR worklogAuthor = currentUser())"
+        jql = "(updated >= '2025-10-02' AND updated <= '2025-10-03') AND (assignee = currentUser() OR assignee was currentUser() OR reporter = currentUser() OR watcher = currentUser() OR comment ~ currentUser() OR worklogAuthor = currentUser())"
 
         params = {
             "jql": jql,
