@@ -23,7 +23,7 @@
    </size>
   </property>
   <property name="windowTitle">
-   <string>Worklog Application</string>
+   <string>Dashboard Automation Service</string>
   </property>
   <widget class="QWidget" name="centralwidget">
    <widget class="QLabel" name="background">
@@ -81,7 +81,7 @@
      <string notr="true">color: white;</string>
     </property>
     <property name="text">
-     <string>Worklog Application</string>
+     <string>Dashboard Automation Service</string>
     </property>
     <property name="alignment">
      <set>Qt::AlignCenter</set>
@@ -162,7 +162,7 @@
    <widget class="QPushButton" name="pushButton">
     <property name="geometry">
      <rect>
-      <x>700</x>
+      <x>490</x>
       <y>580</y>
       <width>210</width>
       <height>50</height>
@@ -200,7 +200,7 @@
    <widget class="QPushButton" name="closeButton">
     <property name="geometry">
      <rect>
-      <x>920</x>
+      <x>710</x>
       <y>580</y>
       <width>210</width>
       <height>50</height>
@@ -238,9 +238,9 @@
    <widget class="QPushButton" name="pushButton_3">
     <property name="geometry">
      <rect>
-      <x>70</x>
+      <x>270</x>
       <y>580</y>
-      <width>211</width>
+      <width>210</width>
       <height>50</height>
      </rect>
     </property>
@@ -296,120 +296,6 @@
     </property>
     <property name="alignment">
      <set>Qt::AlignCenter</set>
-    </property>
-   </widget>
-   <widget class="QPushButton" name="pushButton_4">
-    <property name="geometry">
-     <rect>
-      <x>290</x>
-      <y>580</y>
-      <width>121</width>
-      <height>50</height>
-     </rect>
-    </property>
-    <property name="font">
-     <font>
-      <family>Arial</family>
-      <pointsize>16</pointsize>
-      <weight>75</weight>
-      <bold>true</bold>
-     </font>
-    </property>
-    <property name="styleSheet">
-     <string notr="true">
-       QPushButton {
-        border: none;
-        background-color: #800080; /* Purple background */
-        border-radius: 15px;
-        color: white;
-        font-weight: bold;
-       }
-       QPushButton:hover {
-         background-color: #9932CC; /* Darker purple on hover */
-       }
-       QPushButton:pressed {
-         background-color: #4B0082; /* Even darker purple on press */
-       }
-     </string>
-    </property>
-    <property name="text">
-     <string>간략</string>
-    </property>
-   </widget>
-   <widget class="QPushButton" name="pushButton_5">
-    <property name="geometry">
-     <rect>
-      <x>420</x>
-      <y>580</y>
-      <width>131</width>
-      <height>50</height>
-     </rect>
-    </property>
-    <property name="font">
-     <font>
-      <family>Arial</family>
-      <pointsize>16</pointsize>
-      <weight>75</weight>
-      <bold>true</bold>
-     </font>
-    </property>
-    <property name="styleSheet">
-     <string notr="true">
-       QPushButton {
-        border: none;
-        background-color: #800080; /* Purple background */
-        border-radius: 15px;
-        color: white;
-        font-weight: bold;
-       }
-       QPushButton:hover {
-         background-color: #9932CC; /* Darker purple on hover */
-       }
-       QPushButton:pressed {
-         background-color: #4B0082; /* Even darker purple on press */
-       }
-     </string>
-    </property>
-    <property name="text">
-     <string>중간 간략</string>
-    </property>
-   </widget>
-   <widget class="QPushButton" name="pushButton_6">
-    <property name="geometry">
-     <rect>
-      <x>560</x>
-      <y>580</y>
-      <width>131</width>
-      <height>50</height>
-     </rect>
-    </property>
-    <property name="font">
-     <font>
-      <family>Arial</family>
-      <pointsize>16</pointsize>
-      <weight>75</weight>
-      <bold>true</bold>
-     </font>
-    </property>
-    <property name="styleSheet">
-     <string notr="true">
-       QPushButton {
-        border: none;
-        background-color: #800080; /* Purple background */
-        border-radius: 15px;
-        color: white;
-        font-weight: bold;
-       }
-       QPushButton:hover {
-         background-color: #9932CC; /* Darker purple on hover */
-       }
-       QPushButton:pressed {
-         background-color: #4B0082; /* Even darker purple on press */
-       }
-     </string>
-    </property>
-    <property name="text">
-     <string>상세</string>
     </property>
    </widget>
   </widget>
