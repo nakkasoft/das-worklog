@@ -1,0 +1,13 @@
+{
+  "username": "YOUR_SSO_ID",
+  "azure_openai_endpoint": "https://25-fianl-hac.openai.azure.com/",
+  "azure_openai_api_key": "YOUR_AZURE_OPEN_API_KEY",
+  "azure_openai_api_version": "2024-05-01-preview",
+  "azure_openai_chat_deployment": "gpt-5",
+  "jira_token": "YOUR_JIRA_TOKEN",
+  "confluence_token": "YOUR_CONFLUENCE_TOKEN",
+  "gerrit_token_na": "YOUR_GERRIT_NA_TOKEN",
+  "gerrit_token_eu": "YOUR_GERRIT_EU_TOKEN",
+  "gerrit_token_as": "YOUR_GERRIT_AS_TOKEN",
+  "master_jira": "YOUR_MASTER_WORKLOG_JIRA"
+}

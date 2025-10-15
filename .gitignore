@@ -4,7 +4,6 @@ outlook/*
 !outlook/sample_*.eml
 **/*.eml
 !sample_*.eml
-user*.json
 
 # Python 관련 파일들
 __pycache__/
