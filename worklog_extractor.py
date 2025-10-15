@@ -7,10 +7,16 @@ import requests
 from requests.auth import HTTPBasicAuth
 import json
 
-# UTF-8 인코딩 설정
+# UTF-8 인코딩 설정 (PyInstaller 호환성을 위한 안전한 처리)
 import codecs
-sys.stdout.reconfigure(encoding='utf-8')
-sys.stderr.reconfigure(encoding='utf-8')
+try:
+    if sys.stdout and hasattr(sys.stdout, 'reconfigure'):
+        sys.stdout.reconfigure(encoding='utf-8')
+    if sys.stderr and hasattr(sys.stderr, 'reconfigure'):
+        sys.stderr.reconfigure(encoding='utf-8')
+except (AttributeError, ValueError):
+    # PyInstaller 환경이나 콘솔이 없는 환경에서는 무시
+    pass
 
 # 시스템별 기본 URL 설정
 JIRA_BASE = "http://jira.lge.com/issue"

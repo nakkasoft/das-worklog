@@ -10,6 +10,29 @@ import email_processor
 import jira_uploader
 from datetime import datetime
 
+def resource_path(relative_path):
+    """PyInstaller 환경에서 리소스 파일 경로를 올바르게 찾기 위한 함수"""
+    try:
+        # PyInstaller에서 생성한 임시 폴더
+        base_path = sys._MEIPASS
+    except Exception:
+        # 개발 환경에서는 현재 스크립트 경로
+        base_path = os.path.abspath(".")
+    
+    return os.path.join(base_path, relative_path)
+
+def config_path(filename):
+    """설정 파일 경로를 exe 실행 디렉토리에서 찾기 위한 함수"""
+    # exe 실행 디렉토리 (사용자가 파일을 수정할 수 있는 곳)
+    if getattr(sys, 'frozen', False):
+        # PyInstaller로 빌드된 경우: exe 파일이 있는 디렉토리
+        base_path = os.path.dirname(sys.executable)
+    else:
+        # 개발 환경: 스크립트 파일이 있는 디렉토리
+        base_path = os.path.dirname(os.path.abspath(__file__))
+    
+    return os.path.join(base_path, filename)
+
 class LoadingAnimationThread(QThread):
     """Thread to control the loading animation."""
     start_signal = pyqtSignal()  # Signal to start the animation
@@ -33,7 +56,7 @@ class LoadingAnimationThread(QThread):
 class MyApp(QtWidgets.QMainWindow):
     def __init__(self):
         super(MyApp, self).__init__()
-        uic.loadUi(r"worklog.ui", self)  # Load the .ui file
+        uic.loadUi(resource_path("worklog.ui"), self)  # Load the .ui file
 
         # Connect the buttons to their respective functions
         self.pushButton.clicked.connect(self.submitText)  # Generate button
@@ -65,7 +88,7 @@ class MyApp(QtWidgets.QMainWindow):
         )
         self.loading_label.setStyleSheet("background-color: rgba(255, 255, 255, 200);")
         self.loading_label.setVisible(False)
-        self.movie = QMovie("Loading.gif")  # Path to the loading GIF
+        self.movie = QMovie(resource_path("Loading.gif"))  # Path to the loading GIF
         self.loading_label.setMovie(self.movie)
 
         self.loading_thread = None  # Placeholder for the loading animation thread
@@ -73,7 +96,7 @@ class MyApp(QtWidgets.QMainWindow):
 
     def load_config(self):
         """사용자 설정 파일을 로드합니다."""
-        config_file = os.path.join(os.path.dirname(__file__), "user_config.json")
+        config_file = config_path("user_config.json")
         
         if not os.path.exists(config_file):
             QtWidgets.QMessageBox.critical(
@@ -187,7 +210,13 @@ class MyApp(QtWidgets.QMainWindow):
         
         try:
             username = self.config["username"]
-            worklog_directory = os.path.dirname(os.path.abspath(__file__))
+            # exe와 같은 디렉토리를 worklog_directory로 설정 (templates 폴더가 위치한 곳)
+            if getattr(sys, 'frozen', False):
+                # PyInstaller로 빌드된 경우: exe 파일이 있는 디렉토리
+                worklog_directory = os.path.dirname(sys.executable)
+            else:
+                # 개발 환경: 스크립트 파일이 있는 디렉토리
+                worklog_directory = os.path.dirname(os.path.abspath(__file__))
 
             # AI 처리를 별도 스레드에서 실행
             self.ai_worker = AIWorker(self.config, username, data, worklog_directory)
@@ -230,7 +259,8 @@ class MyApp(QtWidgets.QMainWindow):
             if issue_key:
                 try:
                     # user_config.json에서 Jira 설정 읽기
-                    with open("user_config.json", "r", encoding="utf-8") as f:
+                    config_file = config_path("user_config.json")
+                    with open(config_file, "r", encoding="utf-8") as f:
                         config = json.load(f)
                     
                     print(f"🔍 디버그: Jira 사용자 = {config.get('username', 'NOT_FOUND')}")
@@ -372,7 +402,7 @@ class MyApp(QtWidgets.QMainWindow):
 class SettingsDialog(QtWidgets.QDialog):
     def __init__(self, parent=None):
         super(SettingsDialog, self).__init__(parent)
-        uic.loadUi(r"settings.ui", self)  # Load the settings UI file
+        uic.loadUi(resource_path("settings.ui"), self)  # Load the settings UI file
 
         # Load existing settings into the input fields
         self.loadSettings()
@@ -383,7 +413,7 @@ class SettingsDialog(QtWidgets.QDialog):
 
     def loadSettings(self):
         """Load existing settings into the input fields."""
-        config_file = os.path.join(os.path.dirname(__file__), "user_config.json")
+        config_file = config_path("user_config.json")
         if os.path.exists(config_file):
             with open(config_file, "r", encoding="utf-8") as f:
                 config = json.load(f)
@@ -396,7 +426,7 @@ class SettingsDialog(QtWidgets.QDialog):
 
     def saveSettings(self):
         """Save the settings entered in the input fields."""
-        config_file = os.path.join(os.path.dirname(__file__), "user_config.json")
+        config_file = config_path("user_config.json")
         
         # Load the existing configuration to preserve Azure OpenAI fields
         if os.path.exists(config_file):
@@ -448,7 +478,8 @@ class Worker(QThread):
         # user_config.json에서 제외할 이슈 목록 읽기
         self.excluded_issues = []
         try:
-            with open("user_config.json", "r", encoding="utf-8") as f:
+            config_file = config_path("user_config.json")
+            with open(config_file, "r", encoding="utf-8") as f:
                 config = json.load(f)
                 master_jira = config.get("master_jira", "")
                 if master_jira:
@@ -647,7 +678,8 @@ class AIWorker(QThread):
                     self.log_signal.emit("📋 Jira에 결과물 업로드를 시작합니다...")
                     
                     # user_config.json에서 master_jira 읽기
-                    with open("user_config.json", "r", encoding="utf-8") as f:
+                    config_file = config_path("user_config.json")
+                    with open(config_file, "r", encoding="utf-8") as f:
                         config = json.load(f)
                         master_jira = config.get("master_jira", "")
                         

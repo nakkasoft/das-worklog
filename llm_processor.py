@@ -1,5 +1,6 @@
 import os
 import json
+import sys
 from openai import AzureOpenAI
 
 
@@ -62,8 +63,9 @@ class LLMProcessor:
                 'template.md'
             ]
             
-            # templates 디렉토리도 확인
-            templates_dir = os.path.join(directory_path, 'templates')
+            # templates 디렉토리도 확인 (외부 디렉토리에서)
+            from worklog import config_path  # config_path 함수 import
+            templates_dir = config_path('templates')  # exe와 같은 디렉토리의 templates 폴더
             search_dirs = [directory_path]
             if os.path.exists(templates_dir):
                 search_dirs.append(templates_dir)
