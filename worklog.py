@@ -9,29 +9,9 @@ import llm_processor
 import email_processor
 import jira_uploader
 from datetime import datetime
-
-def resource_path(relative_path):
-    """PyInstaller 환경에서 리소스 파일 경로를 올바르게 찾기 위한 함수"""
-    try:
-        # PyInstaller에서 생성한 임시 폴더
-        base_path = sys._MEIPASS
-    except Exception:
-        # 개발 환경에서는 현재 스크립트 경로
-        base_path = os.path.abspath(".")
-    
-    return os.path.join(base_path, relative_path)
-
-def config_path(filename):
-    """설정 파일 경로를 exe 실행 디렉토리에서 찾기 위한 함수"""
-    # exe 실행 디렉토리 (사용자가 파일을 수정할 수 있는 곳)
-    if getattr(sys, 'frozen', False):
-        # PyInstaller로 빌드된 경우: exe 파일이 있는 디렉토리
-        base_path = os.path.dirname(sys.executable)
-    else:
-        # 개발 환경: 스크립트 파일이 있는 디렉토리
-        base_path = os.path.dirname(os.path.abspath(__file__))
-    
-    return os.path.join(base_path, filename)
+import smtplib
+from email.mime.text import MIMEText
+from email.mime.multipart import MIMEMultipart
 
 class LoadingAnimationThread(QThread):
     """Thread to control the loading animation."""
@@ -54,9 +34,36 @@ class LoadingAnimationThread(QThread):
         self.stop_signal.emit()  # Notify to stop the animation
 
 class MyApp(QtWidgets.QMainWindow):
+
+    def send_email(self, subject, to_emails, from_email, app_password, result):
+        """Send an email notification with the worklog summary."""
+        try:
+
+            # Append result content to the email body
+            body += "\n\n--- Processed Result ---\n\n"
+            body += json.dumps(result, indent=4, ensure_ascii=False)
+
+            # Create the email message
+            message = MIMEMultipart()
+            message['From'] = from_email
+            message['To'] = ", ".join(to_emails)  # Join the list of emails for the email header
+            message['Subject'] = subject
+            message.attach(MIMEText(body, 'plain'))
+
+            # Send the email
+            server = smtplib.SMTP('smtp.gmail.com', 587)
+            server.starttls()
+            server.login(from_email, app_password)
+            server.sendmail(from_email, to_emails, message.as_string())  # Pass the list of emails here
+            server.quit()
+
+            print("Email sent successfully!")
+        except Exception as e:
+            print(f"Failed to send email: {e}")
+            
     def __init__(self):
         super(MyApp, self).__init__()
-        uic.loadUi(resource_path("worklog.ui"), self)  # Load the .ui file
+        uic.loadUi(r"worklog.ui", self)  # Load the .ui file
 
         # Connect the buttons to their respective functions
         self.pushButton.clicked.connect(self.submitText)  # Generate button
@@ -88,7 +95,7 @@ class MyApp(QtWidgets.QMainWindow):
         )
         self.loading_label.setStyleSheet("background-color: rgba(255, 255, 255, 200);")
         self.loading_label.setVisible(False)
-        self.movie = QMovie(resource_path("Loading.gif"))  # Path to the loading GIF
+        self.movie = QMovie("Loading.gif")  # Path to the loading GIF
         self.loading_label.setMovie(self.movie)
 
         self.loading_thread = None  # Placeholder for the loading animation thread
@@ -96,7 +103,7 @@ class MyApp(QtWidgets.QMainWindow):
 
     def load_config(self):
         """사용자 설정 파일을 로드합니다."""
-        config_file = config_path("user_config.json")
+        config_file = os.path.join(os.path.dirname(__file__), "user_config.json")
         
         if not os.path.exists(config_file):
             QtWidgets.QMessageBox.critical(
@@ -207,16 +214,11 @@ class MyApp(QtWidgets.QMainWindow):
 
     def processFetchedData(self, data):
         """Process the fetched data and generate OpenAI completion."""
+        self.updateLogs("주간 보고 작성중...")
         
         try:
             username = self.config["username"]
-            # exe와 같은 디렉토리를 worklog_directory로 설정 (templates 폴더가 위치한 곳)
-            if getattr(sys, 'frozen', False):
-                # PyInstaller로 빌드된 경우: exe 파일이 있는 디렉토리
-                worklog_directory = os.path.dirname(sys.executable)
-            else:
-                # 개발 환경: 스크립트 파일이 있는 디렉토리
-                worklog_directory = os.path.dirname(os.path.abspath(__file__))
+            worklog_directory = os.path.dirname(os.path.abspath(__file__))
 
             # AI 처리를 별도 스레드에서 실행
             self.ai_worker = AIWorker(self.config, username, data, worklog_directory)
@@ -250,44 +252,38 @@ class MyApp(QtWidgets.QMainWindow):
         
         # Jira 서브태스크 URL 표시
         if 'subtask_url' in result:
-            self.updateLogs("📋 생성된 주간 보고서 Link:")
+            self.updateLogs("📋 생성된 Jira 서브태스크:")
             self.updateLogs(f"  🔗 {result['subtask_url']}")
-            
-            # 서브태스크가 성공적으로 생성된 경우 log 파일 업로드 및 삭제
-            issue_key = result.get('issue_key')
-            print(f"🔍 디버그: issue_key = {issue_key}")
-            if issue_key:
-                try:
-                    # user_config.json에서 Jira 설정 읽기
-                    config_file = config_path("user_config.json")
-                    with open(config_file, "r", encoding="utf-8") as f:
-                        config = json.load(f)
-                    
-                    print(f"🔍 디버그: Jira 사용자 = {config.get('username', 'NOT_FOUND')}")
-                    
-                    # JiraUploader 인스턴스 생성
-                    jira_uploader_instance = jira_uploader.JiraUploader(config)
-                    
-                    print("🔍 디버그: JiraUploader 인스턴스 생성 완료")
-                    
-                    # log 파일 업로드 및 삭제
-                    jira_uploader_instance.upload_log_files_and_cleanup(issue_key, "./log")
-                    
-                    print("🔍 디버그: upload_log_files_and_cleanup 호출 완료")
-                    
-                except Exception as e:
-                    print(f"⚠️ Log 파일 처리 실패: {e}")
-                    import traceback
-                    print(f"🔍 디버그: 전체 에러 스택: {traceback.format_exc()}")
-            else:
-                print("🔍 디버그: issue_key가 없어서 log 파일 업로드를 건너뜀")
-            
         elif 'upload_error' in result:
-            print(f"❌ Jira 업로드 실패: {result['upload_error']}")
+            self.updateLogs(f"❌ Jira 업로드 실패: {result['upload_error']}")
         elif 'upload_info' in result:
-            print(f"⚠️ {result['upload_info']}")
+            self.updateLogs(f"⚠️ {result['upload_info']}")
         else:
             self.updateLogs("📋 결과는 Jira 서브태스크에 업로드됩니다.")
+
+        # Send the result via email
+        try:
+            subject = "Dashboard Automation Service Result"
+
+            # Initialize the LLMProcessor instance
+            processor = llm_processor.LLMProcessor(self.config)
+
+            # Process the worklog with the MD file
+            result = processor.process_worklog_with_md_file(
+                username=self.config.get("username", "default_user"),
+                worklog_data=self.worklog_data,
+                directory_path=os.path.dirname(os.path.abspath(__file__))
+            )
+
+            # Email details
+            username = self.config.get("username", "default_user")  # Get the username from the config
+            to_emails = [f"{username}@lge.com"]  # Dynamically set the recipient email
+            from_email = "xmlautomationbot@gmail.com"  # Replace with your Gmail address
+            app_password = "aetq sbde ykho herp"  # Replace with your Gmail app password
+
+            self.send_email(subject, to_emails, from_email, app_password, result)
+        except Exception as e:
+            print(f"⚠️ Failed to send email: {e}")
 
         # Re-enable the Generate button
         self.pushButton.setEnabled(True)
@@ -402,7 +398,7 @@ class MyApp(QtWidgets.QMainWindow):
 class SettingsDialog(QtWidgets.QDialog):
     def __init__(self, parent=None):
         super(SettingsDialog, self).__init__(parent)
-        uic.loadUi(resource_path("settings.ui"), self)  # Load the settings UI file
+        uic.loadUi(r"settings.ui", self)  # Load the settings UI file
 
         # Load existing settings into the input fields
         self.loadSettings()
@@ -413,7 +409,7 @@ class SettingsDialog(QtWidgets.QDialog):
 
     def loadSettings(self):
         """Load existing settings into the input fields."""
-        config_file = config_path("user_config.json")
+        config_file = os.path.join(os.path.dirname(__file__), "user_config.json")
         if os.path.exists(config_file):
             with open(config_file, "r", encoding="utf-8") as f:
                 config = json.load(f)
@@ -423,10 +419,11 @@ class SettingsDialog(QtWidgets.QDialog):
                 self.gerritTokenNaInput.setText(config.get("gerrit_token_na", ""))
                 self.gerritTokenEuInput.setText(config.get("gerrit_token_eu", ""))
                 self.gerritTokenAsInput.setText(config.get("gerrit_token_as", ""))
+                self.masterJiraInput.setText(config.get("master_jira", ""))  # Load master_jira
 
     def saveSettings(self):
         """Save the settings entered in the input fields."""
-        config_file = config_path("user_config.json")
+        config_file = os.path.join(os.path.dirname(__file__), "user_config.json")
         
         # Load the existing configuration to preserve Azure OpenAI fields
         if os.path.exists(config_file):
@@ -443,6 +440,7 @@ class SettingsDialog(QtWidgets.QDialog):
             "gerrit_token_na": self.gerritTokenNaInput.text(),
             "gerrit_token_eu": self.gerritTokenEuInput.text(),
             "gerrit_token_as": self.gerritTokenAsInput.text(),
+            "master_jira": self.masterJiraInput.text(),  # Save master_jira
         })
 
         # Preserve Azure OpenAI fields if they already exist
@@ -478,8 +476,7 @@ class Worker(QThread):
         # user_config.json에서 제외할 이슈 목록 읽기
         self.excluded_issues = []
         try:
-            config_file = config_path("user_config.json")
-            with open(config_file, "r", encoding="utf-8") as f:
+            with open("user_config.json", "r", encoding="utf-8") as f:
                 config = json.load(f)
                 master_jira = config.get("master_jira", "")
                 if master_jira:
@@ -489,7 +486,6 @@ class Worker(QThread):
             print(f"⚠️ user_config.json 읽기 실패: {e}")
 
     def run(self):
-        self.log_signal.emit(f"Version: 1.0.0")
         self.log_signal.emit(f"사용자: {self.username}")
         self.log_signal.emit("설정 파일에서 토큰들이 로드되었습니다.\n")
 
@@ -537,7 +533,7 @@ class Worker(QThread):
             }
 
             # 디버깅용 파일 저장
-            #self.log_signal.emit("디버깅용 데이터 파일 저장 중...")
+            self.log_signal.emit("디버깅용 데이터 파일 저장 중...")
             try:
                 from datetime import datetime
                 
@@ -545,7 +541,7 @@ class Worker(QThread):
                 log_dir = "./log"
                 if not os.path.exists(log_dir):
                     os.makedirs(log_dir)
-                    #self.log_signal.emit(f"📁 로그 폴더 생성: {log_dir}")
+                    self.log_signal.emit(f"📁 로그 폴더 생성: {log_dir}")
                 
                 timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
                 debug_filename = os.path.join(log_dir, f"worklog_debug_{timestamp}.json")
@@ -553,7 +549,7 @@ class Worker(QThread):
                 with open(debug_filename, 'w', encoding='utf-8') as f:
                     json.dump(all_worklog_data, f, ensure_ascii=False, indent=2)
                 
-                #self.log_signal.emit(f"✅ 디버깅 데이터 저장 완료: {debug_filename}")
+                self.log_signal.emit(f"✅ 디버깅 데이터 저장 완료: {debug_filename}")
                 self.log_signal.emit(f"   - JIRA: {len(jira_data)}개")
                 self.log_signal.emit(f"   - Confluence: {len(confluence_data)}개")
                 self.log_signal.emit(f"   - Gerrit Reviews: {len(gerrit_reviews)}개")
@@ -563,7 +559,7 @@ class Worker(QThread):
             except Exception as e:
                 self.log_signal.emit(f"⚠️ 디버깅 파일 저장 중 오류: {e}")
             
-            self.log_signal.emit("\n=== 모든 데이터 수집 완료 ===\n")
+            self.log_signal.emit("=== 모든 데이터 수집 완료 ===")
 
             # Emit the fetched data
             self.data_signal.emit(all_worklog_data)
@@ -588,14 +584,15 @@ class AIWorker(QThread):
     def run(self):
         try:
             self.start_animation_signal.emit()  # Start the loading animation
-            self.log_signal.emit("🔄 AI 처리를 시작합니다...")  # Log the start of AI processing
+            self.log_signal.emit("AI 처리를 시작합니다...")  # Log the start of AI processing
+            self.log_signal.emit("🔄 새로운 LLM 세션을 시작합니다...")
             
             # LLMProcessor 생성 및 새 세션 시작
             processor = llm_processor.LLMProcessor(self.config)
             processor.start_new_session()  # 새로운 대화 세션 시작
             
             # 이메일 데이터 LLM 요약 처리 (새로운 방식)
-            self.log_signal.emit("📧 이메일 데이터 요약 중...")
+            self.log_signal.emit("📧 이메일 데이터를 LLM으로 요약 중...")
             try:
                 if 'email_data' in self.worklog_data and self.worklog_data['email_data']:
                     email_summaries = processor.summarize_email_batch(self.worklog_data['email_data'])
@@ -630,6 +627,7 @@ class AIWorker(QThread):
                 for i, issue in enumerate(jira_issues, 1):
                     try:
                         issue_key = issue.get('issue_key', 'Unknown')
+                        self.log_signal.emit(f"[{i}/{len(jira_issues)}] {issue_key} 요약 중...")
                         
                         # 개별 이슈 요약
                         summary_result = processor.summarize_jira_issue(issue)
@@ -640,7 +638,7 @@ class AIWorker(QThread):
                                 'summary': summary_result['summary'],
                                 'original_data': issue
                             })
-                            self.log_signal.emit(f"✅ [{i}/{len(jira_issues)}] {issue_key} 요약 완료...")
+                            self.log_signal.emit(f"✅ {issue_key} 요약 완료")
                         else:
                             self.log_signal.emit(f"❌ {issue_key} 요약 실패: {summary_result['error']}")
                             
@@ -655,8 +653,6 @@ class AIWorker(QThread):
                 self.log_signal.emit(f"🎉 Jira 이슈 개별 요약 완료: {len(jira_summaries)}개 성공")
             else:
                 self.log_signal.emit("📋 요약할 Jira 이슈가 없습니다.")
-
-            self.log_signal.emit("\n 모든 Data 정리를 완료 했습니다. 보고서 작성중 입니다. \n해당 과정은 다소 시간이 걸릴 수 있습니다. 잠시만 기다려 주세요.")
             
             # 워크로그 데이터와 MD 파일을 함께 처리
             result = processor.process_worklog_with_md_file(
@@ -678,8 +674,7 @@ class AIWorker(QThread):
                     self.log_signal.emit("📋 Jira에 결과물 업로드를 시작합니다...")
                     
                     # user_config.json에서 master_jira 읽기
-                    config_file = config_path("user_config.json")
-                    with open(config_file, "r", encoding="utf-8") as f:
+                    with open("user_config.json", "r", encoding="utf-8") as f:
                         config = json.load(f)
                         master_jira = config.get("master_jira", "")
                         
@@ -694,11 +689,9 @@ class AIWorker(QThread):
                         
                         if upload_result['success']:
                             subtask_url = upload_result.get('url', 'URL 정보 없음')  # 'url' 키 사용
-                            issue_key = upload_result.get('issue_key')  # issue_key 추가
                             self.log_signal.emit(f"✅ Jira 업로드 완료: {subtask_url}")
-                            # 결과에 서브태스크 URL 및 issue_key 정보 추가
+                            # 결과에 서브태스크 URL 정보 추가
                             result['subtask_url'] = subtask_url
-                            result['issue_key'] = issue_key  # issue_key 추가
                         else:
                             error_msg = upload_result.get('error', '알 수 없는 오류')
                             self.log_signal.emit(f"❌ Jira 업로드 실패: {error_msg}")
