@@ -35,32 +35,6 @@ class LoadingAnimationThread(QThread):
 
 class MyApp(QtWidgets.QMainWindow):
 
-    def send_email(self, subject, to_emails, from_email, app_password, result):
-        """Send an email notification with the worklog summary."""
-        try:
-
-            # Append result content to the email body
-            body += "\n\n--- Processed Result ---\n\n"
-            body += json.dumps(result, indent=4, ensure_ascii=False)
-
-            # Create the email message
-            message = MIMEMultipart()
-            message['From'] = from_email
-            message['To'] = ", ".join(to_emails)  # Join the list of emails for the email header
-            message['Subject'] = subject
-            message.attach(MIMEText(body, 'plain'))
-
-            # Send the email
-            server = smtplib.SMTP('smtp.gmail.com', 587)
-            server.starttls()
-            server.login(from_email, app_password)
-            server.sendmail(from_email, to_emails, message.as_string())  # Pass the list of emails here
-            server.quit()
-
-            print("Email sent successfully!")
-        except Exception as e:
-            print(f"Failed to send email: {e}")
-            
     def __init__(self):
         super(MyApp, self).__init__()
         uic.loadUi(r"worklog.ui", self)  # Load the .ui file
@@ -260,30 +234,6 @@ class MyApp(QtWidgets.QMainWindow):
             self.updateLogs(f"⚠️ {result['upload_info']}")
         else:
             self.updateLogs("📋 결과는 Jira 서브태스크에 업로드됩니다.")
-
-        # Send the result via email
-        try:
-            subject = "Dashboard Automation Service Result"
-
-            # Initialize the LLMProcessor instance
-            processor = llm_processor.LLMProcessor(self.config)
-
-            # Process the worklog with the MD file
-            result = processor.process_worklog_with_md_file(
-                username=self.config.get("username", "default_user"),
-                worklog_data=self.worklog_data,
-                directory_path=os.path.dirname(os.path.abspath(__file__))
-            )
-
-            # Email details
-            username = self.config.get("username", "default_user")  # Get the username from the config
-            to_emails = [f"{username}@lge.com"]  # Dynamically set the recipient email
-            from_email = "xmlautomationbot@gmail.com"  # Replace with your Gmail address
-            app_password = "aetq sbde ykho herp"  # Replace with your Gmail app password
-
-            self.send_email(subject, to_emails, from_email, app_password, result)
-        except Exception as e:
-            print(f"⚠️ Failed to send email: {e}")
 
         # Re-enable the Generate button
         self.pushButton.setEnabled(True)
@@ -580,6 +530,33 @@ class AIWorker(QThread):
         self.username = username
         self.worklog_data = worklog_data
         self.directory_path = directory_path
+    
+    def send_email(self, subject, to_emails, from_email, app_password, summary):
+        """Send an email notification with the worklog summary."""
+        try:
+            # Validate to_emails
+            if not isinstance(to_emails, list) or not all(isinstance(email, str) for email in to_emails):
+                raise ValueError("to_emails must be a list of strings")
+
+            # Create the email message
+            message = MIMEMultipart()
+            message['From'] = from_email
+            message['To'] = ", ".join(to_emails)
+            message['Subject'] = subject
+            message.attach(MIMEText(summary, 'plain'))
+
+            # Send the email
+            server = smtplib.SMTP('smtp.gmail.com', 587, timeout=10)
+            try:
+                server.starttls()
+                server.login(from_email, app_password)
+                server.sendmail(from_email, to_emails, message.as_string())
+                print("Email sent successfully!")
+            finally:
+                server.quit()
+        except Exception as e:
+            print(f"Failed to send email: {e}")
+            
 
     def run(self):
         try:
@@ -692,6 +669,19 @@ class AIWorker(QThread):
                             self.log_signal.emit(f"✅ Jira 업로드 완료: {subtask_url}")
                             # 결과에 서브태스크 URL 정보 추가
                             result['subtask_url'] = subtask_url
+
+                            # Send the result via email after successful upload
+                            self.log_signal.emit("📧 결과를 이메일로 전송합니다...")
+                            subject = "[공유] 주간 보고서 내용"
+                            username = self.config.get("username", "default_user")
+                            summary = result.get('summary', '주간 보고서 내용')
+                            to_emails = [f"{username}@lge.com"]
+                            from_email = "xmlautomationbot@gmail.com"
+                            app_password = "aetq sbde ykho herp"
+                        
+                            self.send_email(subject, to_emails, from_email, app_password, summary)
+                            self.log_signal.emit("📧 이메일 전송 완료!")
+
                         else:
                             error_msg = upload_result.get('error', '알 수 없는 오류')
                             self.log_signal.emit(f"❌ Jira 업로드 실패: {error_msg}")
