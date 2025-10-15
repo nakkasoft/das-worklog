@@ -35,10 +35,38 @@ fi
 echo "[4/5] PyInstaller로 실행 파일 빌드 시작..."
 pyinstaller worklog.spec
 
-echo "[5/5] 빌드 결과 확인..."
+echo "[5/5] 빌드 결과 확인 및 추가 파일 복사..."
 if [ -f "dist/DAS_WorkLog" ]; then
     echo
     echo "✅ 빌드 성공!"
+    
+    echo "[5.1] 추가 파일 복사 중..."
+    
+    # templates 폴더 복사
+    if [ -d "templates" ]; then
+        cp -r templates dist/
+        echo "  ✓ templates 폴더 복사 완료"
+    fi
+    
+    # outlook 빈 폴더 생성
+    if [ ! -d "dist/outlook" ]; then
+        mkdir -p dist/outlook
+        echo "  ✓ outlook 빈 폴더 생성 완료"
+    fi
+    
+    # user_config_template.json 복사 (사용자가 참고할 수 있도록)
+    if [ -f "user_config_template.json" ]; then
+        cp user_config_template.json dist/user_config.json
+        echo "  ✓ user_config.json 생성 완료 (template에서 복사)"
+    fi
+    
+    # USER_GUIDE.md 복사
+    if [ -f "USER_GUIDE.md" ]; then
+        cp USER_GUIDE.md dist/
+        echo "  ✓ USER_GUIDE.md 복사 완료"
+    fi
+    
+    echo
     echo "📁 실행 파일 위치: dist/DAS_WorkLog"
     echo
     echo "배포 준비:"

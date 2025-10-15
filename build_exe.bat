@@ -47,16 +47,22 @@ if exist "dist\DAS_WorkLog.exe" (
         echo   ✓ templates 폴더 복사 완료
     )
     
+    REM outlook 빈 폴더 생성
+    if not exist "dist\outlook" (
+        mkdir "dist\outlook" >nul
+        echo   ✓ outlook 빈 폴더 생성 완료
+    )
+    
     REM user_config_template.json 복사 (사용자가 참고할 수 있도록)
     if exist "user_config_template.json" (
         copy "user_config_template.json" "dist\user_config.json" >nul
         echo   ✓ user_config.json 생성 완료 (template에서 복사)
     )
     
-    REM BUILD_DEPLOY_GUIDE.md 복사
-    if exist "BUILD_DEPLOY_GUIDE.md" (
-        copy "BUILD_DEPLOY_GUIDE.md" "dist\" >nul
-        echo   ✓ BUILD_DEPLOY_GUIDE.md 복사 완료
+    REM USER_GUIDE.md 복사
+    if exist "USER_GUIDE.md" (
+        copy "USER_GUIDE.md" "dist\" >nul
+        echo   ✓ USER_GUIDE.md 복사 완료
     )
     
     echo.

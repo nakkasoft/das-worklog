@@ -69,7 +69,8 @@ pyinstaller worklog.spec
 ├── templates/                   # 템플릿 폴더 (사용자 수정 가능)
 │   ├── weekly_report_template.md
 │   └── (기타 템플릿 파일들)
-└── BUILD_DEPLOY_GUIDE.md        # 배포 가이드
+├── outlook/                     # 이메일 작업 폴더 (빈 폴더)
+└── USER_GUIDE.md                # 사용자 가이드
 ```
 
 **주요 특징:**
@@ -90,9 +91,8 @@ pyinstaller worklog.spec
 ├── templates/                   # 템플릿 폴더 (사용자가 수정 가능)
 │   ├── weekly_report_template.md
 │   └── (기타 템플릿 파일들)
-└── BUILD_DEPLOY_GUIDE.md        # 이 가이드 문서
-```
-└── 설치_및_사용_가이드.md        # 사용법 가이드
+├── outlook/                     # 이메일 작업 폴더 (빈 폴더)
+└── USER_GUIDE.md                # 사용자 가이드 문서
 ```
 
 ### 2. 대상 컴퓨터에서 설정
