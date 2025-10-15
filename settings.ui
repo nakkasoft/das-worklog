@@ -25,6 +25,7 @@
   <property name="windowTitle">
    <string>Settings</string>
   </property>
+  
   <widget class="QWidget" name="centralwidget">
    <!-- Background -->
    <widget class="QLabel" name="background">
@@ -421,6 +422,57 @@
     </property>
    </widget>
 
+   <!-- Master JIRA -->
+   <widget class="QLabel" name="masterJiraLabel">
+    <property name="geometry">
+     <rect>
+      <x>20</x>
+      <y>500</y>
+      <width>410</width>
+      <height>20</height>
+     </rect>
+    </property>
+    <property name="font">
+     <font>
+      <family>Arial</family>
+      <pointsize>12</pointsize>
+      <weight>75</weight>
+      <bold>true</bold>
+     </font>
+    </property>
+    <property name="styleSheet">
+     <string notr="true">color: white;</string>
+    </property>
+    <property name="text">
+     <string>Master JIRA:</string>
+    </property>
+   </widget>
+   <widget class="QLineEdit" name="masterJiraInput">
+    <property name="geometry">
+     <rect>
+      <x>20</x>
+      <y>520</y>
+      <width>410</width>
+      <height>30</height>
+     </rect>
+    </property>
+    <property name="styleSheet">
+     <string notr="true">
+       QLineEdit {
+         border: none;
+         border-radius: 10px;
+         background-color: rgb(255, 255, 255);
+         padding: 5px;
+         font-size: 12px;
+         color: #333;
+       }
+     </string>
+    </property>
+    <property name="placeholderText">
+     <string>Enter Master JIRA</string>
+    </property>
+   </widget>
+
    <!-- Close Button -->
    <widget class="QPushButton" name="closeSettingsButton">
     <property name="geometry">
@@ -465,4 +517,3 @@
  <resources/>
  <connections/>
 </ui>
-
