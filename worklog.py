@@ -131,6 +131,7 @@ class MyApp(QtWidgets.QMainWindow):
 
         # Disable the Generate button to block further clicks
         self.pushButton.setEnabled(False)
+        self.pushButton_3.setEnabled(False)
 
         # Clear the logs when Generate button is pressed
         self.clearLogs()
@@ -139,6 +140,7 @@ class MyApp(QtWidgets.QMainWindow):
         if not self.config:
             QtWidgets.QMessageBox.critical(self, "오류", "설정이 로드되지 않았습니다.")
             self.pushButton.setEnabled(True)  # Re-enable the button if there's an error
+            self.pushButton_3.setEnabled(True) # Re-enable the Settings button if there's an error
             return
 
         try:
@@ -170,6 +172,7 @@ class MyApp(QtWidgets.QMainWindow):
                 f"작업 중 오류가 발생했습니다: {e}"
             )
             self.pushButton.setEnabled(True)  # Re-enable the button if there's an error
+            self.pushButton_3.setEnabled(True)  # Re-enable the Settings button if there's an error
             return
 
     def startLoadingAnimation(self):
@@ -206,6 +209,7 @@ class MyApp(QtWidgets.QMainWindow):
         except Exception as e:
             QtWidgets.QMessageBox.critical(self, "Error", f"An error occurred: {e}")
             self.pushButton.setEnabled(True) # Re-enable the button if there's an error
+            self.pushButton_3.setEnabled(True)  # Re-enable the Settings button if there's an error
 
     def handleAIResult(self, result):
         """AI 처리 결과를 처리합니다 (메인 스레드에서 실행)."""
@@ -237,6 +241,7 @@ class MyApp(QtWidgets.QMainWindow):
 
         # Re-enable the Generate button
         self.pushButton.setEnabled(True)
+        self.pushButton_3.setEnabled(True) # Re-enable the Settings button
 
     def handleAIError(self, error_msg):
         """AI 처리 오류를 처리합니다 (메인 스레드에서 실행)."""
@@ -247,6 +252,7 @@ class MyApp(QtWidgets.QMainWindow):
 
         # Re-enable the Generate button
         self.pushButton.setEnabled(True)
+        self.pushButton_3.setEnabled(True) # Re-enable the Settings button
 
     def updateLogs(self, message):
         """Update the logs in lineEdit_5."""
