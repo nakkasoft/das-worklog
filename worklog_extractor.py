@@ -27,14 +27,14 @@ GERRIT_URLS = {
     "AS": "http://vgit.lge.com/as"
 }
 
-# 시간 설정 - 개발 테스트용 고정 날짜 범위 (2025년 9월 29일-10월 3일)
-# 운영 시에는 아래 두 줄을 주석 해제하고 고정 날짜 부분을 주석 처리
-# NOW_UTC = dt.datetime.now(dt.UTC).replace(tzinfo=None)
-# SINCE = NOW_UTC - dt.timedelta(days=3)
+# 시간 설정 - 동적 날짜 범위 (금일 기준 과거 3일)
+# 운영용 동적 날짜 설정
+NOW_UTC = dt.datetime.now(dt.UTC).replace(tzinfo=None)
+SINCE = NOW_UTC - dt.timedelta(days=7)
 
-# 개발 테스트용 고정 날짜 범위
-SINCE = dt.datetime(2025, 9, 29, 0, 0, 0)  # 2025년 9월 29일 00:00:00
-NOW_UTC = dt.datetime(2025, 10, 3, 23, 59, 59)  # 2025년 10월 3일 23:59:59
+# 개발 테스트용 고정 날짜 범위 (현재 비활성화)
+# SINCE = dt.datetime(2025, 9, 29, 0, 0, 0)  # 2025년 9월 29일 00:00:00
+# NOW_UTC = dt.datetime(2025, 10, 3, 23, 59, 59)  # 2025년 10월 3일 23:59:59
 
 def iso_to_dt(s):
     """시간 문자열을 datetime 객체로 변환"""
@@ -357,15 +357,15 @@ def collect_jira_data(username, token, excluded_issues=None):
         r.raise_for_status()
         user_data = r.json()
         
-        # 개발 테스트용 고정 날짜 범위 검색 (2025년 8월 25일-29일)
+        # 동적 날짜 범위 검색 (현재 날짜 기준)
         # 1. 현재 assign 되어 있는 티켓: assignee = currentUser()
         # 2. 과거에 assign 되었던 티켓: assignee was currentUser() 
         # 3. watcher에 내가 있는 경우: watcher = currentUser()
-        # 운영 시에는 아래 jql을 사용하고 고정 날짜 jql을 주석 처리
-        # jql = "(updated >= -7d) AND (assignee = currentUser() OR assignee was currentUser() OR reporter = currentUser() OR watcher = currentUser() OR worklogAuthor = currentUser())"
+        # 운영용 동적 JQL (과거 7일간)
+        jql = "(updated >= -7d) AND (assignee = currentUser() OR assignee was currentUser() OR reporter = currentUser() OR watcher = currentUser() OR comment ~ currentUser() OR worklogAuthor = currentUser())"
         
-        # 개발 테스트용 고정 날짜 범위 JQL
-        jql = "(updated >= '2025-10-02' AND updated <= '2025-10-03') AND (assignee = currentUser() OR assignee was currentUser() OR reporter = currentUser() OR watcher = currentUser() OR comment ~ currentUser() OR worklogAuthor = currentUser())"
+        # 개발 테스트용 고정 날짜 범위 JQL (현재 비활성화)
+        # jql = "(updated >= '2025-10-02' AND updated <= '2025-10-03') AND (assignee = currentUser() OR assignee was currentUser() OR reporter = currentUser() OR watcher = currentUser() OR comment ~ currentUser() OR worklogAuthor = currentUser())"
 
         params = {
             "jql": jql,
@@ -582,12 +582,14 @@ def collect_confluence_data(username, token):
     }
     
     try:
-        # 개발 테스트용 고정 날짜 범위 (2025년 8월 25일-29일)
-        # 운영 시에는 아래 라인을 사용
-        # since_str = SINCE.strftime("%Y-%m-%d")
+        # 동적 날짜 범위 검색 (현재 날짜 기준)
+        # 운영용 동적 날짜 설정
+        since_str = SINCE.strftime("%Y-%m-%d")
+        end_str = NOW_UTC.strftime("%Y-%m-%d")
         
-        since_str = "2025-09-29"
-        end_str = "2025-10-03"
+        # 개발 테스트용 고정 날짜 범위 (현재 비활성화)
+        # since_str = "2025-09-29"
+        # end_str = "2025-10-03"
         params = {
             "cql": f"contributor = currentUser() AND lastModified >= '{since_str}' AND lastModified <= '{end_str}'",
             "limit": 500
@@ -665,12 +667,14 @@ def collect_gerrit_server_data(username, token, server="NA"):
     all_reviews = []
     all_comments = []
     
-    # 개발 테스트용 고정 날짜 범위 검색 (2025년 8월 25일-29일)
-    # 운영 시에는 아래 라인을 사용
-    # since_str = SINCE.strftime("%Y-%m-%d")
+    # 동적 날짜 범위 검색 (현재 날짜 기준)
+    # 운영용 동적 날짜 설정
+    since_str = SINCE.strftime("%Y-%m-%d")
+    end_str = NOW_UTC.strftime("%Y-%m-%d")
     
-    since_str = "2025-09-29"
-    end_str = "2025-10-03"
+    # 개발 테스트용 고정 날짜 범위 (현재 비활성화)
+    # since_str = "2025-09-29"
+    # end_str = "2025-10-03"
     queries = [
         f"owner:{username} after:{since_str} before:{end_str}",  # 내가 작성한 리뷰
         f"reviewer:{username} after:{since_str} before:{end_str}",  # 내가 리뷰한 것들
