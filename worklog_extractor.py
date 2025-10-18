@@ -1,3 +1,28 @@
+"""
+=============================================================================
+📅 DAS-WORKLOG 날짜 설정 가이드
+=============================================================================
+
+🚀 RELEASE/DEBUG 모드 전환 방법:
+   
+   1. RELEASE MODE (운영 환경):
+      RELEASE_MODE = True
+      - 동적 날짜: 현재 시점에서 과거 7일간 자동 계산
+      - 권장: 실제 서비스 운영 시 사용
+   
+   2. DEBUG MODE (개발/테스트 환경):
+      RELEASE_MODE = False  
+      - 고정 날짜: 지정된 특정 기간 사용
+      - 개발 시 원하는 날짜로 SINCE, NOW_UTC 수정 가능
+      - 권장: 개발, 테스트, 데모 시 사용
+
+📝 개발 모드 날짜 수정 방법:
+   SINCE = dt.datetime(2025, 9, 29, 0, 0, 0)      # 시작일 수정
+   NOW_UTC = dt.datetime(2025, 10, 3, 23, 59, 59)  # 종료일 수정
+
+=============================================================================
+"""
+
 import os
 import sys
 import csv
@@ -18,7 +43,47 @@ except (AttributeError, ValueError):
     # PyInstaller 환경이나 콘솔이 없는 환경에서는 무시
     pass
 
+# =============================================================================
+# 📅 날짜 설정 (RELEASE/DEBUG 모드 전환)
+# =============================================================================
+# ⚠️  중요: 이 한 줄만 수정하면 전체 시스템의 날짜 모드가 변경됩니다!
+RELEASE_MODE = False  # True = 릴리즈(동적), False = 개발(고정)
+
+# =============================================================================
+# 🚀 RELEASE MODE 설정 (운영 환경 - 동적 날짜)
+# =============================================================================
+if RELEASE_MODE:
+    print("🚀 RELEASE MODE 활성화: 동적 날짜 범위 사용")
+    NOW_UTC = dt.datetime.now(dt.UTC).replace(tzinfo=None)
+    SINCE = NOW_UTC - dt.timedelta(days=7)  # ⚡ 과거 일수 변경: days=N
+    
+    # JQL 설정 (Jira 검색용)
+    JQL_DATE_RANGE = "-7d"  # ⚡ Jira 날짜 변경: "-Nd" (N일)
+    
+# =============================================================================  
+# 🔧 DEBUG MODE 설정 (개발 환경 - 고정 날짜)
+# =============================================================================
+else:
+    print("🔧 DEBUG MODE 활성화: 고정 날짜 범위 사용")
+    # ⚡ 개발용 날짜 수정 구간 - 아래 두 줄만 수정하면 됩니다!
+    SINCE = dt.datetime(2025, 9, 29, 0, 0, 0)      # 📅 시작일 수정
+    NOW_UTC = dt.datetime(2025, 10, 3, 23, 59, 59)  # 📅 종료일 수정
+    
+    # JQL 설정 (개발용 고정 날짜) 
+    JQL_DATE_RANGE = f"updated >= '{SINCE.strftime('%Y-%m-%d')}' AND updated <= '{NOW_UTC.strftime('%Y-%m-%d')}'"
+
+# =============================================================================
+# 📊 현재 설정 정보 출력
+# =============================================================================
+mode_str = "RELEASE (동적)" if RELEASE_MODE else "DEBUG (고정)"
+print(f"📋 현재 모드: {mode_str}")
+print(f"📅 분석 기간: {SINCE.strftime('%Y-%m-%d %H:%M:%S')} ~ {NOW_UTC.strftime('%Y-%m-%d %H:%M:%S')}")
+print(f"� JQL 조건: {JQL_DATE_RANGE}")
+print("=" * 80)
+
+# =============================================================================
 # 시스템별 기본 URL 설정
+# =============================================================================
 JIRA_BASE = "http://jira.lge.com/issue"
 CONFLUENCE_BASE = "http://collab.lge.com/main"
 GERRIT_URLS = {
@@ -26,15 +91,6 @@ GERRIT_URLS = {
     "EU": "http://vgit.lge.com/eu", 
     "AS": "http://vgit.lge.com/as"
 }
-
-# 시간 설정 - 동적 날짜 범위 (금일 기준 과거 3일)
-# 운영용 동적 날짜 설정
-NOW_UTC = dt.datetime.now(dt.UTC).replace(tzinfo=None)
-SINCE = NOW_UTC - dt.timedelta(days=7)
-
-# 개발 테스트용 고정 날짜 범위 (현재 비활성화)
-# SINCE = dt.datetime(2025, 9, 29, 0, 0, 0)  # 2025년 9월 29일 00:00:00
-# NOW_UTC = dt.datetime(2025, 10, 3, 23, 59, 59)  # 2025년 10월 3일 23:59:59
 
 def iso_to_dt(s):
     """시간 문자열을 datetime 객체로 변환"""
@@ -361,11 +417,13 @@ def collect_jira_data(username, token, excluded_issues=None):
         # 1. 현재 assign 되어 있는 티켓: assignee = currentUser()
         # 2. 과거에 assign 되었던 티켓: assignee was currentUser() 
         # 3. watcher에 내가 있는 경우: watcher = currentUser()
-        # 운영용 동적 JQL (과거 7일간)
-        jql = "(updated >= -7d) AND (assignee = currentUser() OR assignee was currentUser() OR reporter = currentUser() OR watcher = currentUser() OR comment ~ currentUser() OR worklogAuthor = currentUser())"
         
-        # 개발 테스트용 고정 날짜 범위 JQL (현재 비활성화)
-        # jql = "(updated >= '2025-10-02' AND updated <= '2025-10-03') AND (assignee = currentUser() OR assignee was currentUser() OR reporter = currentUser() OR watcher = currentUser() OR comment ~ currentUser() OR worklogAuthor = currentUser())"
+        # 모드에 따른 JQL 날짜 조건 사용
+        if RELEASE_MODE:
+            jql = f"(updated >= {JQL_DATE_RANGE}) AND (assignee = currentUser() OR assignee was currentUser() OR reporter = currentUser() OR watcher = currentUser() OR comment ~ currentUser() OR worklogAuthor = currentUser())"
+        else:
+            #jql = f"({JQL_DATE_RANGE}) AND (assignee = currentUser() OR assignee was currentUser() OR reporter = currentUser() OR watcher = currentUser() OR comment ~ currentUser() OR worklogAuthor = currentUser())"
+            jql = "(updated >= '2025-10-02' AND updated <= '2025-10-03') AND (assignee = currentUser() OR assignee was currentUser() OR reporter = currentUser() OR watcher = currentUser() OR comment ~ currentUser() OR worklogAuthor = currentUser())"
 
         params = {
             "jql": jql,
@@ -582,14 +640,12 @@ def collect_confluence_data(username, token):
     }
     
     try:
-        # 동적 날짜 범위 검색 (현재 날짜 기준)
-        # 운영용 동적 날짜 설정
+        # 모드에 따른 날짜 범위 설정 (전역 변수 사용)
         since_str = SINCE.strftime("%Y-%m-%d")
         end_str = NOW_UTC.strftime("%Y-%m-%d")
         
-        # 개발 테스트용 고정 날짜 범위 (현재 비활성화)
-        # since_str = "2025-09-29"
-        # end_str = "2025-10-03"
+        print(f"📝 Confluence 검색 기간: {since_str} ~ {end_str}")
+        
         params = {
             "cql": f"contributor = currentUser() AND lastModified >= '{since_str}' AND lastModified <= '{end_str}'",
             "limit": 500
@@ -667,14 +723,12 @@ def collect_gerrit_server_data(username, token, server="NA"):
     all_reviews = []
     all_comments = []
     
-    # 동적 날짜 범위 검색 (현재 날짜 기준)
-    # 운영용 동적 날짜 설정
+    # 모드에 따른 날짜 범위 설정 (전역 변수 사용)
     since_str = SINCE.strftime("%Y-%m-%d")
     end_str = NOW_UTC.strftime("%Y-%m-%d")
     
-    # 개발 테스트용 고정 날짜 범위 (현재 비활성화)
-    # since_str = "2025-09-29"
-    # end_str = "2025-10-03"
+    print(f"🔍 Gerrit {server} 서버 검색 기간: {since_str} ~ {end_str}")
+    
     queries = [
         f"owner:{username} after:{since_str} before:{end_str}",  # 내가 작성한 리뷰
         f"reviewer:{username} after:{since_str} before:{end_str}",  # 내가 리뷰한 것들

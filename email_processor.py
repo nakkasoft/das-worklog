@@ -238,7 +238,7 @@ class EmailProcessor:
                     messages=[
                         {
                             "role": "system",
-                            "content": "당신은 이메일 요약 전문가입니다. 이전 대화 내용은 모두 잊고, 오직 현재 제공되는 이메일 데이터만을 기반으로 요약을 작성해주세요. 매번 새로운 독립적인 작업으로 처리해주세요."
+                            "content": "당신은 다양한 직군(개발, 영업, 마케팅, PM, 기획, 운영 등)의 비즈니스 이메일을 분석하는 전문가입니다. 각 이메일의 업무적 맥락과 중요도를 정확히 파악하여 해당 직군의 특성에 맞는 관점으로 요약합니다. 이메일 히스토리와 전후 맥락을 모두 고려하되, 각 이메일은 독립적으로 분석하여 주간 보고서에 포함될 가치 있는 상세한 요약을 제공합니다."
                         },
                         {
                             "role": "user",
@@ -258,113 +258,133 @@ class EmailProcessor:
     def _build_email_summary_prompt(self, email_data):
         """이메일 요약용 프롬프트 구성"""
         prompt_parts = [
-            "다음은 사용자가 발송한 이메일입니다. 내용을 간략하게 요약해주세요.\n\n",
-            f"📧 제목: {email_data['subject']}\n",
-            f"📥 수신자: {email_data['to']}\n"
+            "## 📧 비즈니스 이메일 종합 분석 및 요약\n\n",
+            "다음 발신 이메일을 다양한 직군의 업무 관점에서 종합 분석하여 상세하고 유용한 요약을 작성해주세요.\n\n",
+            
+            "### � 이메일 기본 정보\n",
+            f"- **제목**: {email_data['subject']}\n",
+            f"- **수신자**: {email_data['to']}\n"
         ]
         
         if email_data['cc']:
-            prompt_parts.append(f"📋 참조: {email_data['cc']}\n")
+            prompt_parts.append(f"- **참조 (CC)**: {email_data['cc']}\n")
         
         if email_data['attachments']:
             attachments_info = ", ".join([att['filename'] for att in email_data['attachments']])
-            prompt_parts.append(f"📎 첨부파일: {attachments_info}\n")
+            prompt_parts.append(f"- **첨부파일**: {attachments_info}\n")
         
         prompt_parts.extend([
-            "\n" + "="*50 + "\n",
-            "📝 본문 내용:\n",
-            email_data['body_clean'],
-            "\n" + "="*50 + "\n\n",
-            "위 발송 이메일의 주요 내용을 다음과 같이 요약해주세요:\n",
-            "1. 핵심 주제\n",
-            "2. 주요 내용 (2-3줄)\n",
-            "3. 요청사항 또는 전달사항 (있는 경우)\n\n",
-            "간결하고 명확하게 작성해주세요."
+            f"- **발송일**: {email_data.get('date', 'N/A')}\n\n",
+            
+            "### � 이메일 전체 내용 (히스토리 포함)\n",
+            "```\n",
+            email_data['body_clean'][:3000],  # 더 많은 내용 포함
+            "\n```\n\n",
+            
+            "### 🎯 종합 분석 및 상세 요약\n\n",
+            "다음 구조로 업무 맥락을 충분히 파악할 수 있는 상세한 요약을 작성해주세요:\n\n",
+            
+            "**📌 커뮤니케이션 분류 및 성격**\n",
+            "- [ ] 기술 문의/답변 (개발 관련)\n",
+            "- [ ] 고객 대응/영업 활동\n", 
+            "- [ ] 마케팅/홍보 관련\n",
+            "- [ ] 프로젝트 관리/기획\n",
+            "- [ ] 협업 요청/부서간 조율\n",
+            "- [ ] 결과 보고/성과 공유\n",
+            "- [ ] 회의/일정 관련\n",
+            "- [ ] 고객 지원/서비스\n",
+            "- [ ] 기타: [구체적 분류]\n\n",
+            
+            "**🎯 핵심 내용 및 맥락 (4-5줄)**\n",
+            "- [이메일을 보내게 된 배경과 목적]\n",
+            "- [주요 메시지 1 - 가장 중요한 내용]\n",
+            "- [주요 메시지 2 - 구체적 요청이나 제안]\n",
+            "- [중요한 결정사항이나 업데이트]\n",
+            "- [히스토리나 이전 논의가 있다면 맥락 설명]\n\n",
+            
+            "**💼 업무 영향도 및 가치**\n",
+            "- **우선순위**: 높음/보통/낮음\n",
+            "- **관련 업무**: [연관된 프로젝트나 업무 영역]\n",
+            "- **비즈니스 임팩트**: [조직에 미치는 영향이나 가치]\n",
+            "- **협업 범위**: [관련 부서나 팀, 외부 이해관계자]\n\n",
+            
+            "**⏰ 후속 조치 및 기대사항**\n",
+            "- **필요한 액션**: [요청된 구체적 행동이나 피드백]\n",
+            "- **중요 일정**: [마감일이나 중요 스케줄]\n",
+            "- **기대 결과**: [예상되는 결과나 다음 단계]\n\n",
+            
+            "### 작성 지침\n",
+            "- **히스토리 중시**: 이메일 본문 내 이전 대화나 맥락을 모두 고려하여 종합 분석\n",
+            "- **직군별 관점**: 해당 업무의 특성(기술/영업/마케팅/기획 등)을 반영한 전문적 해석\n",
+            "- **상세 수준**: 6-8줄로 충실하게 작성하여 업무 상황을 완전히 이해할 수 있도록\n",
+            "- **실용성**: 상급자나 동료가 해당 커뮤니케이션의 중요도와 맥락을 명확히 파악할 수 있도록"
         ])
         
         return "".join(prompt_parts)
     
-    def process_outlook_emails(self, outlook_folder_path=None, date_filter=None):
+    def collect_email_data(self, outlook_folder_path=None, date_filter=None):
         """
-        Outlook 폴더의 모든 EML 파일을 하나씩 처리하여 요약 생성
+        Outlook 폴더의 모든 EML 파일을 파싱하여 원시 데이터 수집 (기존 호환성 유지)
         
         Args:
             outlook_folder_path (str): Outlook 폴더 경로 (사용하지 않음, 호환성 위해 유지)
             date_filter (str, optional): 날짜 필터 (YYYY-MM-DD 형식)
             
         Returns:
-            list: 처리된 이메일 요약 배열
+            list: 파싱된 이메일 데이터 배열 (기존 형식 유지)
         """
-        processed_summaries = []
-        
+        email_data_list = []
+
         try:
-            print(f"📂 Outlook 이메일 처리 시작: {OUTLOOK_FOLDER_PATH}")
-            
+            print(f"📂 Outlook 이메일 데이터 수집 시작: {OUTLOOK_FOLDER_PATH}")
+
             # EML 파일 찾기
             eml_files = self.find_eml_files()
-            
+
             if not eml_files:
-                print("⚠️ 처리할 EML 파일이 없습니다.")
-                return processed_summaries
-            
-            print(f"📧 총 {len(eml_files)}개의 EML 파일을 순차적으로 처리합니다.")
-            
+                print("⚠️ 수집할 EML 파일이 없습니다.")
+                return email_data_list
+
+            print(f"📧 총 {len(eml_files)}개의 EML 파일에서 데이터를 수집합니다.")
+
             for index, eml_file in enumerate(eml_files, 1):
                 try:
-                    print(f"\n[{index}/{len(eml_files)}] 처리 중: {os.path.basename(eml_file)}")
-                    
-                    # 1. EML 파일 파싱
+                    print(f"[{index}/{len(eml_files)}] 데이터 수집 중: {os.path.basename(eml_file)}")
+
+                    # EML 파일 파싱
                     email_data = self.parse_eml_file(eml_file)
-                    
-                    # 2. 날짜 필터 적용 (옵션)
+
+                    # 날짜 필터 적용 (옵션)
                     if date_filter and email_data['date']:
                         email_date = email_data['date'][:10]  # YYYY-MM-DD 부분만
                         if email_date < date_filter:
                             print(f"⏭️ 날짜 필터로 제외: {email_data['subject'][:30]}...")
                             continue
-                    
-                    # 3. 이메일 요약 생성 (하나씩 LLM 요청)
+
+                    # 유효한 본문이 있는 경우만 수집
                     if email_data['body_clean'].strip():
-                        print(f"🤖 LLM 요약 요청 중...")
-                        summary = self.summarize_email(email_data)
-                        
-                        # 요약 결과를 배열에 추가 (발신자 제외, 간소화된 필드)
-                        summary_item = {
-                            'subject': email_data['subject'],
-                            'to': email_data['to'],
-                            'ai_summary': summary
-                        }
-                        processed_summaries.append(summary_item)
-                        print(f"✅ 요약 완료 및 배열에 추가")
+                        # 데이터 타입 표시 추가
+                        email_data['source'] = 'email'
+                        email_data['type'] = 'sent_email'
+                        email_data_list.append(email_data)
+                        print(f"✅ 데이터 수집 완료")
                     else:
-                        print(f"⚠️ 본문이 비어있어 요약 생략")
-                        summary_item = {
-                            'subject': email_data['subject'],
-                            'to': email_data['to'],
-                            'ai_summary': "본문이 비어있거나 읽을 수 없습니다."
-                        }
-                        processed_summaries.append(summary_item)
-                    
+                        print(f"⚠️ 본문이 비어있어 수집 제외")
+
                 except Exception as e:
-                    print(f"❌ EML 파일 처리 오류 ({os.path.basename(eml_file)}): {e}")
+                    print(f"❌ EML 파일 파싱 오류 ({os.path.basename(eml_file)}): {e}")
                     # 오류가 있어도 다른 파일 계속 처리
-                    error_item = {
-                        'subject': "파싱 오류",
-                        'to': "알 수 없음",
-                        'ai_summary': f"처리 중 오류 발생: {str(e)}"
-                    }
-                    processed_summaries.append(error_item)
                     continue
-            
-            print(f"\n🎉 모든 이메일 처리 완료!")
-            print(f"   - 총 처리된 파일: {len(processed_summaries)}개")
-            print(f"   - 성공적으로 요약된 이메일: {len([s for s in processed_summaries if not s['ai_summary'].startswith('처리 중 오류')])}개")
-            
-            return processed_summaries
-            
+
+            print(f"\n🎉 이메일 데이터 수집 완료!")
+            print(f"   - 총 수집된 이메일: {len(email_data_list)}개")
+
+            return email_data_list
+
         except Exception as e:
-            error_msg = f"이메일 처리 중 전체 오류: {e}"
+            error_msg = f"이메일 데이터 수집 중 오류: {e}"
             print(f"❌ {error_msg}")
+            raise Exception(error_msg)
             raise Exception(error_msg)
     
     def save_email_summaries(self, processed_summaries, output_file="email_summaries.json"):
