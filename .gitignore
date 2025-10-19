@@ -122,6 +122,9 @@ worklog_debug_*.json
 # log 폴더 전체 (결과물 저장)
 log/
 
+# presentation 폴더 (발표 자료)
+presentation/
+
 # 임시 파일
 *.tmp
 *.bak
