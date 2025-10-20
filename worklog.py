@@ -499,7 +499,7 @@ class Worker(QThread):
             print(f"⚠️ user_config.json 읽기 실패: {e}")
 
     def run(self):
-        self.log_signal.emit(f"Version: 1.0.0")
+        self.log_signal.emit(f"Version: 1.1.0")
         self.log_signal.emit(f"사용자: {self.username}")
         self.log_signal.emit("설정 파일에서 토큰들이 로드되었습니다.\n")
 
